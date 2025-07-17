@@ -1,0 +1,592 @@
+"""
+Trello iOS App Artifact Parser
+Extracts Trello app data including boards, cards, lists, user data, and activity logs
+"""
+
+import json
+import os
+import sqlite3
+from pathlib import Path
+from datetime import datetime
+
+from scripts.ilapfuncs import (
+    artifact_processor,
+    get_file_path,
+    get_sqlite_db_records,
+    convert_cocoa_core_data_ts_to_utc,
+    convert_unix_ts_to_utc,
+    logfunc,
+    does_table_exist_in_db
+)
+
+__artifacts_v2__ = {
+    "trelloBoards": {
+        "name": "Trello - Boards",
+        "description": "Extracts Trello boards including name, description, URL, creation date, and metadata",
+        "author": "@js-forensics",
+        "creation_date": "2025-01-17",
+        "last_update_date": "2025-01-17",
+        "requirements": "none",
+        "category": "Trello",
+        "notes": "Parses Trello FCTrellisData.sqlite database for board information",
+        "paths": (
+            '*/mobile/Containers/Shared/AppGroup/*/FCTrellisData.sqlite*',
+        ),
+        "output_types": "all",
+        "artifact_icon": "grid"
+    },
+    "trelloCards": {
+        "name": "Trello - Cards",
+        "description": "Extracts Trello cards including name, description, due dates, position, and board/list associations",
+        "author": "@js-forensics",
+        "creation_date": "2025-01-17",
+        "last_update_date": "2025-01-17",
+        "requirements": "none",
+        "category": "Trello",
+        "notes": "Parses Trello FCTrellisData.sqlite database for card information",
+        "paths": (
+            '*/mobile/Containers/Shared/AppGroup/*/FCTrellisData.sqlite*',
+        ),
+        "output_types": "all",
+        "artifact_icon": "file-text"
+    },
+    "trelloActivity": {
+        "name": "Trello - Activity",
+        "description": "Extracts Trello activity logs including actions, timestamps, and associated users/boards/cards",
+        "author": "@js-forensics",
+        "creation_date": "2025-01-17",
+        "last_update_date": "2025-01-17",
+        "requirements": "none",
+        "category": "Trello",
+        "notes": "Parses Trello FCTrellisData.sqlite database for activity/action logs",
+        "paths": (
+            '*/mobile/Containers/Shared/AppGroup/*/FCTrellisData.sqlite*',
+        ),
+        "output_types": "all",
+        "artifact_icon": "activity"
+    },
+    "trelloUsers": {
+        "name": "Trello - Users",
+        "description": "Extracts Trello user information including full name, username, email, and user ID",
+        "author": "@js-forensics",
+        "creation_date": "2025-01-17",
+        "last_update_date": "2025-01-17",
+        "requirements": "none",
+        "category": "Trello",
+        "notes": "Parses Trello FCTrellisData.sqlite database for user/member information",
+        "paths": (
+            '*/mobile/Containers/Shared/AppGroup/*/FCTrellisData.sqlite*',
+        ),
+        "output_types": "all",
+        "artifact_icon": "users"
+    }
+}
+
+def parse_trello_timestamp(timestamp_value):
+    """Convert Trello timestamp (Cocoa epoch) to UTC string"""
+    if timestamp_value and timestamp_value > 0:
+        return convert_cocoa_core_data_ts_to_utc(timestamp_value)
+    return ''
+
+def parse_trello_boards_db(db_path):
+    """Parse Trello boards from FCTrellisData.sqlite database"""
+    data_list = []
+    
+    try:
+        if not does_table_exist_in_db(db_path, 'ZFCTBOARD'):
+            return data_list
+            
+        query = '''
+            SELECT 
+                b.Z_PK as board_pk,
+                b.ZNAME as board_name,
+                b.ZDESC as board_description,
+                b.ZURL as board_url,
+                b.ZIDENTIFIER as board_id,
+                b.ZCLOSED as is_closed,
+                b.ZSUBSCRIBED as is_subscribed,
+                b.ZDATECREATED as date_created,
+                b.ZDATELASTACTIVITY as date_last_activity,
+                b.ZDATELASTVIEWED as date_last_viewed,
+                o.ZNAME as organization_name,
+                o.ZDISPLAYNAME as organization_display_name
+            FROM ZFCTBOARD b
+            LEFT JOIN ZFCTORGANIZATION o ON b.ZORGANIZATION = o.Z_PK
+            ORDER BY b.ZDATELASTACTIVITY DESC
+        '''
+        
+        db_records = get_sqlite_db_records(db_path, query)
+        
+        for record in db_records:
+            try:
+                board_name = record['board_name'] if record['board_name'] else ''
+                board_description = record['board_description'] if record['board_description'] else ''
+                board_url = record['board_url'] if record['board_url'] else ''
+                board_id = record['board_id'] if record['board_id'] else ''
+                
+                # Parse timestamps
+                date_created = parse_trello_timestamp(record['date_created'])
+                date_last_activity = parse_trello_timestamp(record['date_last_activity'])
+                date_last_viewed = parse_trello_timestamp(record['date_last_viewed'])
+                
+                # Parse status flags
+                is_closed = "Yes" if record['is_closed'] else "No"
+                is_subscribed = "Yes" if record['is_subscribed'] else "No"
+                
+                # Organization info
+                org_name = record['organization_name'] if record['organization_name'] else ''
+                org_display = record['organization_display_name'] if record['organization_display_name'] else ''
+                organization = f"{org_display} ({org_name})" if org_name else org_display
+                
+                data_list.append((
+                    date_created,
+                    date_last_activity,
+                    date_last_viewed,
+                    board_name,
+                    board_description,
+                    board_url,
+                    board_id,
+                    is_closed,
+                    is_subscribed,
+                    organization,
+                    db_path
+                ))
+                
+            except Exception as e:
+                logfunc(f"Error processing board record: {str(e)}")
+                continue
+                
+    except Exception as e:
+        logfunc(f"Error processing Trello boards database {db_path}: {str(e)}")
+    
+    return data_list
+
+def parse_trello_cards_db(db_path):
+    """Parse Trello cards from FCTrellisData.sqlite database"""
+    data_list = []
+    
+    try:
+        if not does_table_exist_in_db(db_path, 'ZFCTCARD'):
+            return data_list
+            
+        query = '''
+            SELECT 
+                c.Z_PK as card_pk,
+                c.ZNAME as card_name,
+                c.ZDESC as card_description,
+                c.ZIDENTIFIER as card_id,
+                c.ZURL as card_url,
+                c.ZPOS as position,
+                c.ZDUE as due_date,
+                c.ZDUECOMPLETE as due_complete,
+                c.ZCLOSED as is_closed,
+                c.ZSUBSCRIBED as is_subscribed,
+                c.ZDATECREATED as date_created,
+                c.ZDATELASTACTIVITY as date_last_activity,
+                l.ZNAME as list_name,
+                l.ZIDENTIFIER as list_id,
+                b.ZNAME as board_name,
+                b.ZIDENTIFIER as board_id
+            FROM ZFCTCARD c
+            LEFT JOIN ZFCTLIST l ON c.ZLIST = l.Z_PK
+            LEFT JOIN ZFCTBOARD b ON c.ZBOARD = b.Z_PK
+            ORDER BY c.ZDATELASTACTIVITY DESC
+        '''
+        
+        db_records = get_sqlite_db_records(db_path, query)
+        
+        for record in db_records:
+            try:
+                card_name = record['card_name'] if record['card_name'] else ''
+                card_description = record['card_description'] if record['card_description'] else ''
+                card_url = record['card_url'] if record['card_url'] else ''
+                card_id = record['card_id'] if record['card_id'] else ''
+                
+                # Parse timestamps
+                date_created = parse_trello_timestamp(record['date_created'])
+                date_last_activity = parse_trello_timestamp(record['date_last_activity'])
+                due_date = parse_trello_timestamp(record['due_date'])
+                
+                # Parse status flags
+                is_closed = "Yes" if record['is_closed'] else "No"
+                is_subscribed = "Yes" if record['is_subscribed'] else "No"
+                due_complete = "Yes" if record['due_complete'] else "No"
+                
+                # Position and list info
+                position = str(record['position']) if record['position'] else ''
+                list_name = record['list_name'] if record['list_name'] else ''
+                list_id = record['list_id'] if record['list_id'] else ''
+                
+                # Board info
+                board_name = record['board_name'] if record['board_name'] else ''
+                board_id = record['board_id'] if record['board_id'] else ''
+                
+                data_list.append((
+                    date_created,
+                    date_last_activity,
+                    due_date,
+                    card_name,
+                    card_description,
+                    card_url,
+                    card_id,
+                    position,
+                    is_closed,
+                    is_subscribed,
+                    due_complete,
+                    board_name,
+                    board_id,
+                    list_name,
+                    list_id,
+                    db_path
+                ))
+                
+            except Exception as e:
+                logfunc(f"Error processing card record: {str(e)}")
+                continue
+                
+    except Exception as e:
+        logfunc(f"Error processing Trello cards database {db_path}: {str(e)}")
+    
+    return data_list
+
+def parse_trello_activity_db(db_path):
+    """Parse Trello activity from FCTrellisData.sqlite database"""
+    data_list = []
+    
+    try:
+        if not does_table_exist_in_db(db_path, 'ZFCTACTION'):
+            return data_list
+            
+        query = '''
+            SELECT 
+                a.Z_PK as action_pk,
+                a.ZTYPE as action_type,
+                a.ZDATE as action_date,
+                a.ZIDENTIFIER as action_id,
+                a.ZDISPLAY as action_data,
+                m.ZFULLNAME as member_name,
+                m.ZUSERNAME as member_username,
+                m.ZIDENTIFIER as member_id,
+                b.ZNAME as board_name,
+                b.ZIDENTIFIER as board_id,
+                c.ZNAME as card_name,
+                c.ZIDENTIFIER as card_id
+            FROM ZFCTACTION a
+            LEFT JOIN ZFCTMEMBER m ON a.ZMEMBERCREATOR = m.Z_PK
+            LEFT JOIN ZFCTBOARD b ON a.ZBOARD = b.Z_PK
+            LEFT JOIN ZFCTCARD c ON a.ZCARD = c.Z_PK
+            ORDER BY a.ZDATE DESC
+        '''
+        
+        db_records = get_sqlite_db_records(db_path, query)
+        
+        for record in db_records:
+            try:
+                action_type = record['action_type'] if record['action_type'] else ''
+                action_date = parse_trello_timestamp(record['action_date'])
+                action_id = record['action_id'] if record['action_id'] else ''
+                
+                # Member info
+                member_name = record['member_name'] if record['member_name'] else ''
+                member_username = record['member_username'] if record['member_username'] else ''
+                member_id = record['member_id'] if record['member_id'] else ''
+                member_info = f"{member_name} (@{member_username})" if member_username else member_name
+                
+                # Board info
+                board_name = record['board_name'] if record['board_name'] else ''
+                board_id = record['board_id'] if record['board_id'] else ''
+                
+                # Card info
+                card_name = record['card_name'] if record['card_name'] else ''
+                card_id = record['card_id'] if record['card_id'] else ''
+                
+                # Parse action data (BLOB)
+                action_data = record['action_data'] if record['action_data'] else ''
+                action_details = ''
+                if action_data:
+                    try:
+                        # Try to decode as JSON string first
+                        if isinstance(action_data, bytes):
+                            action_data_str = action_data.decode('utf-8', errors='ignore')
+                        else:
+                            action_data_str = str(action_data)
+                        
+                        data_json = json.loads(action_data_str)
+                        # Extract relevant details from the JSON
+                        if 'text' in data_json:
+                            action_details = data_json['text']
+                        elif 'card' in data_json:
+                            action_details = f"Card: {data_json.get('card', {}).get('name', '')}"
+                        elif 'list' in data_json:
+                            action_details = f"List: {data_json.get('list', {}).get('name', '')}"
+                    except:
+                        action_details = str(action_data)[:100]  # Truncate if not JSON
+                
+                data_list.append((
+                    action_date,
+                    action_type,
+                    member_info,
+                    member_id,
+                    board_name,
+                    board_id,
+                    card_name,
+                    card_id,
+                    action_details,
+                    action_id,
+                    db_path
+                ))
+                
+            except Exception as e:
+                logfunc(f"Error processing activity record: {str(e)}")
+                continue
+                
+    except Exception as e:
+        logfunc(f"Error processing Trello activity database {db_path}: {str(e)}")
+    
+    return data_list
+
+def parse_trello_users_db(db_path):
+    """Parse Trello users from FCTrellisData.sqlite database"""
+    data_list = []
+    
+    try:
+        if not does_table_exist_in_db(db_path, 'ZFCTMEMBER'):
+            return data_list
+            
+        query = '''
+            SELECT 
+                m.Z_PK as member_pk,
+                m.ZFULLNAME as full_name,
+                m.ZUSERNAME as username,
+                m.ZEMAIL as email,
+                m.ZIDENTIFIER as user_id,
+                m.ZAVATARURL as avatar_url,
+                m.ZCONFIRMED as is_confirmed,
+                m.ZINITIALS as initials,
+                m.ZMEMBERTYPE as member_type
+            FROM ZFCTMEMBER m
+            ORDER BY m.ZFULLNAME
+        '''
+        
+        db_records = get_sqlite_db_records(db_path, query)
+        
+        for record in db_records:
+            try:
+                full_name = record['full_name'] if record['full_name'] else ''
+                username = record['username'] if record['username'] else ''
+                email = record['email'] if record['email'] else ''
+                user_id = record['user_id'] if record['user_id'] else ''
+                avatar_url = record['avatar_url'] if record['avatar_url'] else ''
+                initials = record['initials'] if record['initials'] else ''
+                member_type = record['member_type'] if record['member_type'] else ''
+                
+                # Parse status flags
+                is_confirmed = "Yes" if record['is_confirmed'] else "No"
+                
+                data_list.append((
+                    full_name,
+                    username,
+                    email,
+                    user_id,
+                    initials,
+                    is_confirmed,
+                    member_type,
+                    avatar_url,
+                    db_path
+                ))
+                
+            except Exception as e:
+                logfunc(f"Error processing user record: {str(e)}")
+                continue
+                
+    except Exception as e:
+        logfunc(f"Error processing Trello users database {db_path}: {str(e)}")
+    
+    return data_list
+
+@artifact_processor
+def trelloBoards(files_found, report_folder, seeker, wrap_text, timezone_offset):
+    """Extract Trello board data from FCTrellisData.sqlite database"""
+    
+    data_list = []
+    
+    data_headers = (
+        ('Date Created', 'datetime'),
+        ('Date Last Activity', 'datetime'),
+        ('Date Last Viewed', 'datetime'),
+        'Board Name',
+        'Board Description',
+        'Board URL',
+        'Board ID',
+        'Is Closed',
+        'Is Subscribed',
+        'Organization',
+        ('Source File', 'file')
+    )
+    
+    if not files_found:
+        logfunc('No Trello board files found')
+        return data_headers, data_list, ''
+    
+    for file_found in files_found:
+        try:
+            file_path = str(file_found)
+            logfunc(f'Processing Trello boards file: {file_path}')
+            
+            if file_path.endswith('.sqlite'):
+                db_data = parse_trello_boards_db(file_path)
+                data_list.extend(db_data)
+                
+        except Exception as e:
+            logfunc(f'Error processing Trello boards file {file_found}: {str(e)}')
+            continue
+    
+    # Sort by last activity date (newest first)
+    data_list.sort(key=lambda x: x[1] if x[1] else '', reverse=True)
+    
+    source_path = str(files_found[0]) if files_found else ''
+    
+    logfunc(f'Found {len(data_list)} Trello board entries')
+    
+    return data_headers, data_list, source_path
+
+@artifact_processor
+def trelloCards(files_found, report_folder, seeker, wrap_text, timezone_offset):
+    """Extract Trello card data from FCTrellisData.sqlite database"""
+    
+    data_list = []
+    
+    data_headers = (
+        ('Date Created', 'datetime'),
+        ('Date Last Activity', 'datetime'),
+        ('Due Date', 'datetime'),
+        'Card Name',
+        'Card Description',
+        'Card URL',
+        'Card ID',
+        'Position',
+        'Is Closed',
+        'Is Subscribed',
+        'Due Complete',
+        'Board Name',
+        'Board ID',
+        'List Name',
+        'List ID',
+        ('Source File', 'file')
+    )
+    
+    if not files_found:
+        logfunc('No Trello card files found')
+        return data_headers, data_list, ''
+    
+    for file_found in files_found:
+        try:
+            file_path = str(file_found)
+            logfunc(f'Processing Trello cards file: {file_path}')
+            
+            if file_path.endswith('.sqlite'):
+                db_data = parse_trello_cards_db(file_path)
+                data_list.extend(db_data)
+                
+        except Exception as e:
+            logfunc(f'Error processing Trello cards file {file_found}: {str(e)}')
+            continue
+    
+    # Sort by last activity date (newest first)
+    data_list.sort(key=lambda x: x[1] if x[1] else '', reverse=True)
+    
+    source_path = str(files_found[0]) if files_found else ''
+    
+    logfunc(f'Found {len(data_list)} Trello card entries')
+    
+    return data_headers, data_list, source_path
+
+@artifact_processor
+def trelloActivity(files_found, report_folder, seeker, wrap_text, timezone_offset):
+    """Extract Trello activity data from FCTrellisData.sqlite database"""
+    
+    data_list = []
+    
+    data_headers = (
+        ('Action Date', 'datetime'),
+        'Action Type',
+        'Member',
+        'Member ID',
+        'Board Name',
+        'Board ID',
+        'Card Name',
+        'Card ID',
+        'Action Details',
+        'Action ID',
+        ('Source File', 'file')
+    )
+    
+    if not files_found:
+        logfunc('No Trello activity files found')
+        return data_headers, data_list, ''
+    
+    for file_found in files_found:
+        try:
+            file_path = str(file_found)
+            logfunc(f'Processing Trello activity file: {file_path}')
+            
+            if file_path.endswith('.sqlite'):
+                db_data = parse_trello_activity_db(file_path)
+                data_list.extend(db_data)
+                
+        except Exception as e:
+            logfunc(f'Error processing Trello activity file {file_found}: {str(e)}')
+            continue
+    
+    # Sort by action date (newest first)
+    data_list.sort(key=lambda x: x[0] if x[0] else '', reverse=True)
+    
+    source_path = str(files_found[0]) if files_found else ''
+    
+    logfunc(f'Found {len(data_list)} Trello activity entries')
+    
+    return data_headers, data_list, source_path
+
+@artifact_processor
+def trelloUsers(files_found, report_folder, seeker, wrap_text, timezone_offset):
+    """Extract Trello user data from FCTrellisData.sqlite database"""
+    
+    data_list = []
+    
+    data_headers = (
+        'Full Name',
+        'Username',
+        'Email',
+        'User ID',
+        'Initials',
+        'Is Confirmed',
+        'Member Type',
+        'Avatar URL',
+        ('Source File', 'file')
+    )
+    
+    if not files_found:
+        logfunc('No Trello user files found')
+        return data_headers, data_list, ''
+    
+    for file_found in files_found:
+        try:
+            file_path = str(file_found)
+            logfunc(f'Processing Trello users file: {file_path}')
+            
+            if file_path.endswith('.sqlite'):
+                db_data = parse_trello_users_db(file_path)
+                data_list.extend(db_data)
+                
+        except Exception as e:
+            logfunc(f'Error processing Trello users file {file_found}: {str(e)}')
+            continue
+    
+    # Sort by full name
+    data_list.sort(key=lambda x: x[0] if x[0] else '', reverse=False)
+    
+    source_path = str(files_found[0]) if files_found else ''
+    
+    logfunc(f'Found {len(data_list)} Trello user entries')
+    
+    return data_headers, data_list, source_path
