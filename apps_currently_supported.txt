@@ -1,0 +1,112 @@
+THIRD-PARTY iOS APPS CURRENTLY SUPPORTED BY iLEAPP
+==================================================
+
+Based on analysis of artifact scripts in /Users/js/consulting_work/side_projects/iLEAPP/scripts/artifacts/
+
+MESSAGING & COMMUNICATION:
+- WhatsApp (Messages, Contacts, Call History)
+- Facebook Messenger (Messages, Calls, Contacts, Secret Conversations, Groups)
+- Telegram (Messages)
+- Discord (Chats, Account Data, Manifest)
+- Slack (Messages, Channels, Users, Attachments)
+- Wire Secure Messenger (Account, Messages)
+- Viber (Artifacts)
+- Line (Artifacts)
+- Kik (Messages, Users, Groups, Uploads, Metadata)
+- IMO HD Chat
+- Zangi Chats
+
+SOCIAL MEDIA:
+- BeReal (Accounts, Posts, Comments, Contacts, Friends, Messages, Preferences, RealMojis)
+- Instagram (Threads)
+- TikTok (Messages, Contacts, Search)
+- Bumble
+- Foursquare Swarm (Check-ins, Venues, Tips, Stickers, Comments, Account, Contacts)
+
+DATING & SOCIAL:
+- Oops: Make New Friends
+
+PRODUCTIVITY & BUSINESS:
+- Microsoft Teams (Messages, Calls, Contacts, Logs, Shared Locations, User Info)
+- LinkedIn (Account, Messages, Conversations)
+- Slack (Messages, Channels, Users, Attachments)
+- Splitwise (Expenses, Groups, Users, Balances, Notifications)
+
+FINANCE & PAYMENTS:
+- Cash App
+- Venmo
+- Vipps (Contacts)
+- Twint (Transactions)
+- Metamask
+
+TRANSPORTATION:
+- Uber (Client, Places, LevelDB)
+- Waze
+- Life360 (Bundle ID: life360.safetymap)
+- Audi Trip (audiTripdata)
+
+TRAVEL & ACCOMMODATION:
+- Booking.com (Searches, Bookings, Notifications, Preferences, Destinations, Wish Lists)
+- AllTrails (Trail Details, User Info)
+
+COMMUNICATION TOOLS:
+- Burner (Accounts, Numbers, Contacts, Messages, Cache)
+- Text Free - Pinger
+- Teleguard
+
+SHOPPING & MARKETPLACE:
+- Kijiji Conversations
+- Kleinanzeigen.de (Search History, Messages, User Account)
+
+BROWSERS:
+- Chrome/Chromium (History, Bookmarks, Downloads, Cookies, Login Data, Autofill)
+- WebKit Cache Records
+
+PRODUCTIVITY:
+- ChatGPT (Bundle ID: *)
+- Google Translate (History, Favorites, Text-to-Speech)
+- Google Chat
+- Google Duo
+- ProtonMail
+
+ENTERTAINMENT:
+- BitTorrent (Torrent Data, Resume Info)
+
+SECURITY & SURVEILLANCE:
+- Hikvision
+- Dahua Technology (DMSS)
+- Secret Calculator (Calculator Vault)
+
+HEALTH & FITNESS:
+- Withings Health Mate
+
+UTILITIES:
+- Tile App (Database, Discovery, Network Database)
+- PayByPhone (Parking Sessions, Users, Vehicles)
+
+KNOWN BUNDLE IDs:
+- com.life360.safetymap (Life360)
+- hammerandchisel.discord (Discord)  
+- viber (Viber)
+- * (ChatGPT - wildcard pattern)
+
+SUMMARY:
+========
+Total Third-Party Apps: ~50+ apps
+Most Common Categories:
+1. Messaging & Communication (11 apps)
+2. Social Media (5 apps)
+3. Finance & Payments (5 apps)
+4. Transportation (4 apps)
+5. Business & Productivity (4 apps)
+
+The artifacts support various data types including:
+- Messages and chat histories
+- User accounts and profiles
+- Contacts and friend lists
+- Call logs and communication history
+- Location data
+- Transaction records
+- Media attachments
+- Search histories
+- Settings and preferences

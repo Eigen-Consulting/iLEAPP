@@ -1,0 +1,109 @@
+APPS NOT SUPPORTED BY iLEAPP - ANALYSIS RESULTS
+===================================================
+
+Date: 2025-07-17
+Analysis of extraction: /Users/js/consulting_work/side_projects/iLEAPP/extraction/
+
+## SUMMARY:
+This analysis compared the iOS apps found in the provided extraction with the apps currently supported by iLEAPP artifact scripts. The results show several third-party apps that are present in the extraction but do not have corresponding artifact support in iLEAPP.
+
+## METHODOLOGY:
+1. Analyzed all artifact scripts in /Users/js/consulting_work/side_projects/iLEAPP/scripts/artifacts/
+2. Extracted __artifacts_v2__ and __artifacts__ dictionaries to identify supported apps
+3. Explored the filesystem extraction to identify installed third-party apps
+4. Extracted bundle identifiers from app Info.plist files
+5. Cross-referenced to identify gaps in support
+
+## CURRENTLY SUPPORTED THIRD-PARTY APPS:
+Based on analysis of 250+ artifact scripts, iLEAPP currently supports ~50+ third-party apps including:
+- WhatsApp, Facebook Messenger, Telegram, Discord, Slack
+- BeReal, Instagram, TikTok, Bumble  
+- LinkedIn, Microsoft Teams, Splitwise
+- Uber, Life360, Booking.com
+- Chrome, ChatGPT, Google Translate
+- And many others (see apps_currently_supported.txt for full list)
+
+## THIRD-PARTY APPS IN EXTRACTION:
+From the filesystem extraction, the following third-party apps were identified:
+
+### APPS NOT SUPPORTED BY iLEAPP:
+
+0. **Snapchat** (com.toyopagroup.picaboo) - ✅ COMPLETED
+   - Social media platform with ephemeral messaging
+   - Implemented: Snapchat artifact parser with messages, memories, user data
+   - Status: Successfully tested and working - extracts 7 message entries and 18 user data entries
+1. **Trello** (com.fogcreek.trello)
+   - Project management/collaboration app
+   - Likely data: boards, cards, tasks, team collaboration data
+   - Potential artifacts: boards, cards, comments, attachments, user activity
+
+2. **Reddit** (com.reddit.Reddit) - ✅ COMPLETED
+   - Social media platform
+   - Implemented: Reddit artifact parser with posts, comments, user profiles, preferences
+   - Status: Successfully tested and working
+
+3. **Pinterest** (pinterest)
+   - Visual discovery platform
+   - Likely data: pins, boards, searches, user activity
+   - Potential artifacts: pins, boards, searches, user profile, saved content
+
+4. **PictureThis** (cn.danatech.xingseus)
+   - Plant identification app
+   - Likely data: photo analysis, plant identifications, user library
+   - Potential artifacts: plant identifications, photos, search history, user library
+
+5. **Despicable Me** (from DespicableMe.app)
+   - Mobile game
+   - Likely data: game progress, achievements, user data
+   - Potential artifacts: game progress, achievements, user statistics, in-app purchases
+
+6. **Sequoia Translator** (from SequoiaTranslator.app)
+   - Translation app
+   - Likely data: translation history, language preferences
+   - Potential artifacts: translation history, language pairs, user preferences
+
+7. **f.app** (Bundle ID unknown)
+   - Unknown app (needs further investigation)
+   - Potential artifacts: TBD based on app identification
+
+### APPS ALREADY SUPPORTED BY iLEAPP:
+- **TikTok** (com.zhiliaoapp.musically) - ✅ SUPPORTED (Messages, Contacts, Search)
+- **Discord** (com.hammerandchisel.discord) - ✅ SUPPORTED (Chats, Account Data)
+- **Instagram** (com.burbn.instagram) - ✅ SUPPORTED (Threads) [partial support]
+
+## PRIORITY RECOMMENDATIONS:
+
+### HIGH PRIORITY (Popular apps with rich forensic data):
+1. **Reddit** - Major social media platform, rich user activity data
+2. **Trello** - Popular business/productivity tool, collaboration data
+3. **Pinterest** - Visual content platform, user behavior insights
+
+### MEDIUM PRIORITY:
+4. **PictureThis** - Niche but potentially interesting user behavior data
+5. **Sequoia Translator** - Translation history could be forensically relevant
+
+### LOW PRIORITY:
+6. **Despicable Me** - Gaming data, less forensically significant
+7. **f.app** - Unknown app, needs identification first
+
+## NEXT STEPS:
+1. Prioritize Reddit artifact development (high user base, rich data)
+2. Research Trello's data storage patterns (SQLite databases, plists)
+3. Investigate Pinterest's local data caching
+4. Expand Instagram support beyond just Threads
+5. Examine each app's container directories for database files and artifacts
+
+## TECHNICAL NOTES:
+- All apps follow standard iOS container structure
+- Most likely use SQLite for local data storage
+- Check Documents/, Library/Application Support/, and Library/Caches/ directories
+- Look for .sqlite, .db, .plist, and .json files
+- Consider Core Data implementations for some apps
+
+## CONTAINER LOCATIONS:
+- Trello: /private/var/containers/Bundle/Application/61BFA770-7DAF-4FF3-8B47-1008D606FD54/
+- Reddit: /private/var/containers/Bundle/Application/7077AB3E-75C8-4A5E-A2DE-70727CC14144/
+- Pinterest: /private/var/containers/Bundle/Application/26796BF9-5A5D-441E-91F1-1EAFDAC28937/
+- PictureThis: /private/var/containers/Bundle/Application/96FA9EDC-5E58-4C40-8A60-DE6980801271/
+
+This analysis provides a clear roadmap for expanding iLEAPP's support for additional iOS applications found in real-world extractions.
