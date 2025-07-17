@@ -1,109 +1,415 @@
-APPS NOT SUPPORTED BY iLEAPP - ANALYSIS RESULTS
-===================================================
+Apps NOT supported by iLEAPP
+============================================================
 
-Date: 2025-07-17
-Analysis of extraction: /Users/js/consulting_work/side_projects/iLEAPP/extraction/
+Total apps found in extraction-2: 226
+Apps with existing iLEAPP support: 524
+Apps WITHOUT iLEAPP support: 179
 
-## SUMMARY:
-This analysis compared the iOS apps found in the provided extraction with the apps currently supported by iLEAPP artifact scripts. The results show several third-party apps that are present in the extraction but do not have corresponding artifact support in iLEAPP.
+RECENTLY IMPLEMENTED (8 apps):
+============================================================
+✅ Reddit (com.reddit.Reddit) - IMPLEMENTED (previous session)
+✅ Snapchat (com.toyopagroup.picaboo) - IMPLEMENTED (previous session)
+✅ Trello (com.fogcreek.trello) - IMPLEMENTED (previous session)
+✅ Pinterest (pinterest) - IMPLEMENTED (previous session)
+✅ DuckDuckGo Browser (com.duckduckgo.mobile.ios) - IMPLEMENTED (previous session)
+✅ App Lock (com.domobile.applock) - IMPLEMENTED (this session)
+✅ Uber (com.ubercab.UberClient) - IMPLEMENTED (this session)
+✅ Voice Memos (com.apple.VoiceMemos) - IMPLEMENTED (this session)
 
-## METHODOLOGY:
-1. Analyzed all artifact scripts in /Users/js/consulting_work/side_projects/iLEAPP/scripts/artifacts/
-2. Extracted __artifacts_v2__ and __artifacts__ dictionaries to identify supported apps
-3. Explored the filesystem extraction to identify installed third-party apps
-4. Extracted bundle identifiers from app Info.plist files
-5. Cross-referenced to identify gaps in support
+Apple System (140 apps):
+----------------------------------------
+  • Aauiviewservice
+    Bundle ID: com.apple.AAUIViewService
+  • Accountauthenticationdialog
+    Bundle ID: com.apple.AccountAuthenticationDialog
+  • Airdropui
+    Bundle ID: com.apple.Sharing.AirDropUI
+  • Airplayreceiver
+    Bundle ID: com.apple.airplayreceiver
+  • Amsengagementviewservice
+    Bundle ID: com.apple.AMSEngagementViewService
+  • Appdistributionlaunchangel
+    Bundle ID: com.apple.AppDistributionLaunchAngel
+  • Appssouiservice
+    Bundle ID: com.apple.AppSSOUIService
+  • Apsuiapp
+    Bundle ID: com.apple.APSUIApp
+  • Askpermissionui
+    Bundle ID: com.apple.AskPermissionUI
+  • Authenticationservicesui
+    Bundle ID: com.apple.AuthenticationServicesUI
+  • Authkituiservice
+    Bundle ID: com.apple.AuthKitUIService
+  • Autosettings
+    Bundle ID: com.apple.AutoSettings
+  • Axremoteviewservice
+    Bundle ID: com.apple.AXRemoteViewService
+  • Axuiviewservice
+    Bundle ID: com.apple.AXUIViewService
+  • Backlinkindicator
+    Bundle ID: com.apple.BacklinkIndicator
+  • Barcodescanner
+    Bundle ID: com.apple.BarcodeScanner
+  • Batteries
+    Bundle ID: com.apple.Batteries
+  • Bridge
+    Bundle ID: com.apple.Bridge
+  • Calculator
+    Bundle ID: com.apple.calculator
+  • Carcharge
+    Bundle ID: com.apple.CarCharge
+  • Carclimate
+    Bundle ID: com.apple.CarClimate
+  • Carclosures
+    Bundle ID: com.apple.CarClosures
+  • Carousel
+    Bundle ID: com.apple.ContactsUI.Carousel
+  • Carplaysettings
+    Bundle ID: com.apple.CarPlaySettings
+  • Carplaysetupapp
+    Bundle ID: com.apple.CarPlaySetupApp
+  • Carplaysplashscreen
+    Bundle ID: com.apple.CarPlaySplashScreen
+  • Carplaywallpaper
+    Bundle ID: com.apple.CarPlayWallpaper
+  • Carradio
+    Bundle ID: com.apple.CarRadio
+  • Cartirepressure
+    Bundle ID: com.apple.CarTirePressure
+  • Cartrip
+    Bundle ID: com.apple.CarTrip
+  • Cbremotesetup
+    Bundle ID: com.apple.CBRemoteSetup
+  • Clipviewservice
+    Bundle ID: com.apple.ClipViewService
+  • Clockangel
+    Bundle ID: com.apple.ClockAngel
+  • Colorpickeruiservice
+    Bundle ID: com.apple.UIKit.ColorPickerUIService
+  • Companionviewservice
+    Bundle ID: com.apple.CompanionViewService
+  • Compass
+    Bundle ID: com.apple.compass
+  • Compasscalibrationviewservice
+    Bundle ID: com.apple.CompassCalibrationViewService
+  • Continuitycaptureshieldui
+    Bundle ID: com.apple.ContinuityCaptureShieldUI
+  • Coreauthui
+    Bundle ID: com.apple.CoreAuthUI
+  • Credentialsharingservice
+    Bundle ID: com.apple.CredentialSharingService
+  • Ctcarrierspaceauth
+    Bundle ID: com.apple.CTCarrierSpaceAuth
+  • Ctkui
+    Bundle ID: com.apple.ctkui
+  • Ctnotifyuiservice
+    Bundle ID: com.apple.CTNotifyUIService
+  • Ddactionsservice
+    Bundle ID: com.apple.datadetectors.DDActionsService
+  • Demoapp
+    Bundle ID: com.apple.DemoApp
+  • Diagnostics
+    Bundle ID: com.apple.Diagnostics
+  • Diagnosticsreporter
+    Bundle ID: com.apple.DiagnosticsReporter
+  • Diagnosticsservice
+    Bundle ID: com.apple.DiagnosticsService
+  • Documentsapp
+    Bundle ID: com.apple.DocumentsApp
+  • Eventviewservice
+    Bundle ID: com.apple.EventViewService
+  • Eyereliefui
+    Bundle ID: com.apple.EyeReliefUI
+  • Fcauthenticationui
+    Bundle ID: com.apple.FCAuthenticationUI
+  • Feedbackassistant
+    Bundle ID: com.apple.appleseed.FeedbackAssistant
+  • Financestub
+    Bundle ID: com.apple.FinanceStub
+  • Financeuiservice
+    Bundle ID: com.apple.FinanceUIService
+  • Findmyextensioncontainer
+    Bundle ID: com.apple.icloud.FindMyDevice.FindMyExtensionContainer
+  • Fmdmagsafesetupremoteui
+    Bundle ID: com.apple.FMDMagSafeSetupRemoteUI
+  • Fontinstallviewservice
+    Bundle ID: com.apple.FontInstallViewService
+  • Fontpickeruiservice
+    Bundle ID: com.apple.UIKit.FontPickerUIService
+  • Freeform
+    Bundle ID: com.apple.freeform
+  • Ftminternal
+    Bundle ID: com.apple.FTMInternal
+  • Fullkeyboardaccess
+    Bundle ID: com.apple.fullkeyboardaccess
+  • Hdsviewservice
+    Bundle ID: com.apple.HDSViewService
+  • Hearingapp
+    Bundle ID: com.apple.HearingApp
+  • Home
+    Bundle ID: com.apple.Home
+  • Homecaptiveviewservice
+    Bundle ID: com.apple.HomeCaptiveViewService
+  • Homecontrolservice
+    Bundle ID: com.apple.Home.HomeControlService
+  • Ibooks
+    Bundle ID: com.apple.iBooks
+  • Icq
+    Bundle ID: com.apple.icq
+  • Inputui
+    Bundle ID: com.apple.InputUI
+  • Jellyfish
+    Bundle ID: com.apple.Jellyfish
+  • Journal
+    Bundle ID: com.apple.journal
+  • Magnifier
+    Bundle ID: com.apple.Magnifier
+  • Mbhelperapp
+    Bundle ID: com.apple.MBHelperApp
+  • Measure
+    Bundle ID: com.apple.measure
+  • Mobileaddressbook
+    Bundle ID: com.apple.MobileAddressBook
+  • Mobilereplayer
+    Bundle ID: com.apple.MobileReplayer
+  • Mobilestore
+    Bundle ID: com.apple.MobileStore
+  • Momentsuiservice
+    Bundle ID: com.apple.MomentsUIService
+  • Mtlreplayer
+    Bundle ID: com.apple.MTLReplayer
+  • Newdeviceoutreachapp
+    Bundle ID: com.apple.NewDeviceOutreachApp
+  • Newdevicesetupuiservice
+    Bundle ID: com.apple.NewDeviceSetupUIService
+  • Pairinguiservice
+    Bundle ID: com.apple.dockkit.pairinguiservice
+  • Paperboard
+    Bundle ID: com.apple.PaperBoard
+  • Passkitservicesxpcservice
+    Bundle ID: com.apple.PassKitServicesXPCService
+  • Pasviewservice
+    Bundle ID: com.apple.PASViewService
+  • Pcviewservice
+    Bundle ID: com.apple.PCViewService
+  • Pduiapp
+    Bundle ID: com.apple.PDUIApp
+  • Peopleviewservice
+    Bundle ID: com.apple.PeopleViewService
+  • Posterboard
+    Bundle ID: com.apple.PosterBoard
+  • Previewshell
+    Bundle ID: com.apple.PreviewShell
+  • Print-Center
+    Bundle ID: com.apple.PrintKit.Print-Center
+  • Proximityreadersceneui
+    Bundle ID: com.apple.ProximityReaderSceneUI
+  • Proximityreaderuiservice
+    Bundle ID: com.apple.ProximityReaderUIService
+  • Recoverdeviceui
+    Bundle ID: com.apple.RecoverDeviceUI
+  • Reminders
+    Bundle ID: com.apple.reminders
+  • Remote
+    Bundle ID: com.apple.feedback.remote
+  • Remoteicloudquotaui
+    Bundle ID: com.apple.RemoteiCloudQuotaUI
+  • Remotepassuiservice
+    Bundle ID: com.apple.RemotePassUIService
+  • Remoteuiservice
+    Bundle ID: com.apple.findmy.remoteuiservice
+  • Replaykitangel
+    Bundle ID: com.apple.replaykitangel
+  • Runtime
+    Bundle ID: com.apple.shortcuts.runtime
+  • Safetymonitorapp
+    Bundle ID: com.apple.SafetyMonitorApp
+  • Screensharingviewservice
+    Bundle ID: com.apple.ScreenSharingViewService
+  • Screenshotservicesservice
+    Bundle ID: com.apple.ScreenshotServicesService
+  • Screentimeunlock
+    Bundle ID: com.apple.ScreenTimeUnlock
+  • Screentimewidgetapplication
+    Bundle ID: com.apple.ScreenTimeWidgetApplication
+  • Sharebear
+    Bundle ID: com.apple.CloudKit.ShareBear
+  • Sharinguiservice
+    Bundle ID: com.apple.SharingUIService
+  • Sharingviewservice
+    Bundle ID: com.apple.SharingViewService
+  • Shazameventsapp
+    Bundle ID: com.apple.ShazamEventsApp
+  • Shortcuts
+    Bundle ID: com.apple.shortcuts
+  • Shortcutsui
+    Bundle ID: com.apple.ShortcutsUI
+  • Sidecar
+    Bundle ID: com.apple.sidecar
+  • Simsetupuiservice
+    Bundle ID: com.apple.SIMSetupUIService
+  • Sleeplockscreen
+    Bundle ID: com.apple.SleepLockScreen
+  • Smsfilter
+    Bundle ID: com.apple.smsFilter
+  • Sosbuddy
+    Bundle ID: com.apple.SOSBuddy
+  • Springboardeducation
+    Bundle ID: com.apple.SpringBoardEducation
+  • Stickersapp
+    Bundle ID: com.apple.Animoji.StickersApp
+  • Stocks
+    Bundle ID: com.apple.stocks
+  • Storedemoviewservice
+    Bundle ID: com.apple.StoreDemoViewService
+  • Storekituiservice
+    Bundle ID: com.apple.ios.StoreKitUIService
+  • Subcredentialuiservice
+    Bundle ID: com.apple.SubcredentialUIService
+  • Systempaperviewservice
+    Bundle ID: com.apple.SystemPaperViewService
+  • Tdgsharingviewservice
+    Bundle ID: com.apple.TDGSharingViewService
+  • Tips
+    Bundle ID: com.apple.tips
+  • Tv
+    Bundle ID: com.apple.tv
+  • Tvaccessviewservice
+    Bundle ID: com.apple.TVAccessViewService
+  • Tvremoteuiservice
+    Bundle ID: com.apple.TVRemoteUIService
+  • Tvsetupuiservice
+    Bundle ID: com.apple.TVSetupUIService
+  • Usergenerated
+    Bundle ID: com.apple.Stickers.UserGenerated
+  • Voiceovertouch
+    Bundle ID: com.apple.VoiceOverTouch
+  • Vsviewservice
+    Bundle ID: com.apple.VSViewService
+  • Webapp
+    Bundle ID: com.apple.webapp
+  • Webcontentanalysisui
+    Bundle ID: com.apple.WebContentFilter.remoteUI.WebContentAnalysisUI
+  • Websheet
+    Bundle ID: com.apple.WebSheet
+  • Widgetrenderer-Carplay
+    Bundle ID: com.apple.chrono.WidgetRenderer-CarPlay
+  • Widgetrenderer-Default
+    Bundle ID: com.apple.chrono.WidgetRenderer-Default
+  • Workoutremoteviewservice
+    Bundle ID: com.apple.WorkoutRemoteViewService
 
-## CURRENTLY SUPPORTED THIRD-PARTY APPS:
-Based on analysis of 250+ artifact scripts, iLEAPP currently supports ~50+ third-party apps including:
-- WhatsApp, Facebook Messenger, Telegram, Discord, Slack
-- BeReal, Instagram, TikTok, Bumble  
-- LinkedIn, Microsoft Teams, Splitwise
-- Uber, Life360, Booking.com
-- Chrome, ChatGPT, Google Translate
-- And many others (see apps_currently_supported.txt for full list)
+Email (1 apps):
+----------------------------------------
+  • Mailcompositionservice
+    Bundle ID: com.apple.MailCompositionService
 
-## THIRD-PARTY APPS IN EXTRACTION:
-From the filesystem extraction, the following third-party apps were identified:
+Entertainment (8 apps):
+----------------------------------------
+  • Gamecenterremotealert
+    Bundle ID: com.apple.GameCenterRemoteAlert
+  • Gamecenteruiservice
+    Bundle ID: com.apple.gamecenter.GameCenterUIService
+  • Mediaremoteui
+    Bundle ID: com.apple.MediaRemoteUI
+  • Mediaremoteuiservice
+    Bundle ID: com.apple.MediaRemoteUIService
+  • Music
+    Bundle ID: com.apple.Music
+  • Musicrecognition
+    Bundle ID: com.apple.musicrecognition
+  • Widgets
+    Bundle ID: com.apple.gamecenter.widgets
+  • Zoom
+    Bundle ID: us.zoom.videomeetings
 
-### APPS NOT SUPPORTED BY iLEAPP:
+Health/Fitness (6 apps):
+----------------------------------------
+  • Health
+    Bundle ID: com.apple.Health
+  • Healthenbuddy
+    Bundle ID: com.apple.HealthENBuddy
+  • Healthenlauncher
+    Bundle ID: com.apple.HealthENLauncher
+  • Healthprivacyservice
+    Bundle ID: com.apple.HealthPrivacyService
+  • Publichealthremoteui
+    Bundle ID: com.apple.PublicHealthRemoteUI
+  • Sleep
+    Bundle ID: com.apple.Health.Sleep
 
-0. **Snapchat** (com.toyopagroup.picaboo) - ✅ COMPLETED
-   - Social media platform with ephemeral messaging
-   - Implemented: Snapchat artifact parser with messages, memories, user data
-   - Status: Successfully tested and working - extracts 7 message entries and 18 user data entries
-1. **Trello** (com.fogcreek.trello)
-   - Project management/collaboration app
-   - Likely data: boards, cards, tasks, team collaboration data
-   - Potential artifacts: boards, cards, comments, attachments, user activity
+Messaging (8 apps):
+----------------------------------------
+  • Activitymessagesapp
+    Bundle ID: com.apple.ActivityMessagesApp
+  • Asktomessageshost
+    Bundle ID: com.apple.AskToMessagesHost
+  • Business
+    Bundle ID: com.apple.icloud.apps.messages.business
+  • Businesschatviewservice
+    Bundle ID: com.apple.BusinessChatViewService
+  • Facebook Messenger
+    Bundle ID: com.facebook.Messenger
+  • Peoplemessageservice
+    Bundle ID: com.apple.PeopleMessageService
+  • Session
+    Bundle ID: com.loki-project.loki-messenger
+  • Wickr
+    Bundle ID: com.mywickr.wickr
 
-2. **Reddit** (com.reddit.Reddit) - ✅ COMPLETED
-   - Social media platform
-   - Implemented: Reddit artifact parser with posts, comments, user profiles, preferences
-   - Status: Successfully tested and working
+Other (6 apps):
+----------------------------------------
+  • FlightRadar24
+    Bundle ID: se.resenatverket.FlightRadar24-Free
+  • Google Meet
+    Bundle ID: com.google.meetings
+  • Second Phone Number
+    Bundle ID: com.second.phonenumber
+  • Twitter
+    Bundle ID: com.atebits.Tweetie2
+  • WeChat
+    Bundle ID: com.tencent.xin
+  • What3Words
+    Bundle ID: com.what3words.ios.what3words
+  • Yellow
+    Bundle ID: co.yellw.Yellow
 
-3. **Pinterest** (pinterest)
-   - Visual discovery platform
-   - Likely data: pins, boards, searches, user activity
-   - Potential artifacts: pins, boards, searches, user profile, saved content
+Photo/Camera (9 apps):
+----------------------------------------
+  • Carcamera
+    Bundle ID: com.apple.CarCamera
+  • Claritycamera
+    Bundle ID: com.apple.ClarityCamera
+  • Clarityphotos
+    Bundle ID: com.apple.ClarityPhotos
+  • Emojistickers
+    Bundle ID: com.apple.FunCamera.EmojiStickers
+  • PhotoVault
+    Bundle ID: com.enchantedcloud.photovault
+  • PhotoVault Pro
+    Bundle ID: com.enchantedcloud.photovaultpro
+  • Photosuiservice
+    Bundle ID: com.apple.Photos.PhotosUIService
+  • Shapespicker
+    Bundle ID: com.apple.FunCamera.ShapesPicker
+  • Textpicker
+    Bundle ID: com.apple.FunCamera.TextPicker
 
-4. **PictureThis** (cn.danatech.xingseus)
-   - Plant identification app
-   - Likely data: photo analysis, plant identifications, user library
-   - Potential artifacts: plant identifications, photos, search history, user library
+Utilities (3 apps):
+----------------------------------------
+  • News
+    Bundle ID: com.apple.news
+  • Newsd
+    Bundle ID: com.apple.newsd
+  • Translate
+    Bundle ID: com.apple.Translate
 
-5. **Despicable Me** (from DespicableMe.app)
-   - Mobile game
-   - Likely data: game progress, achievements, user data
-   - Potential artifacts: game progress, achievements, user statistics, in-app purchases
+Web Browser (3 apps):
+----------------------------------------
+  • DuckDuckGo
+    Bundle ID: com.duckduckgo.mobile.ios
+  • Onion Browser
+    Bundle ID: com.miketigas.OnionBrowser
+  • Safariviewservice
+    Bundle ID: com.apple.SafariViewService
 
-6. **Sequoia Translator** (from SequoiaTranslator.app)
-   - Translation app
-   - Likely data: translation history, language preferences
-   - Potential artifacts: translation history, language pairs, user preferences
-
-7. **f.app** (Bundle ID unknown)
-   - Unknown app (needs further investigation)
-   - Potential artifacts: TBD based on app identification
-
-### APPS ALREADY SUPPORTED BY iLEAPP:
-- **TikTok** (com.zhiliaoapp.musically) - ✅ SUPPORTED (Messages, Contacts, Search)
-- **Discord** (com.hammerandchisel.discord) - ✅ SUPPORTED (Chats, Account Data)
-- **Instagram** (com.burbn.instagram) - ✅ SUPPORTED (Threads) [partial support]
-
-## PRIORITY RECOMMENDATIONS:
-
-### HIGH PRIORITY (Popular apps with rich forensic data):
-1. **Reddit** - Major social media platform, rich user activity data
-2. **Trello** - Popular business/productivity tool, collaboration data
-3. **Pinterest** - Visual content platform, user behavior insights
-
-### MEDIUM PRIORITY:
-4. **PictureThis** - Niche but potentially interesting user behavior data
-5. **Sequoia Translator** - Translation history could be forensically relevant
-
-### LOW PRIORITY:
-6. **Despicable Me** - Gaming data, less forensically significant
-7. **f.app** - Unknown app, needs identification first
-
-## NEXT STEPS:
-1. Prioritize Reddit artifact development (high user base, rich data)
-2. Research Trello's data storage patterns (SQLite databases, plists)
-3. Investigate Pinterest's local data caching
-4. Expand Instagram support beyond just Threads
-5. Examine each app's container directories for database files and artifacts
-
-## TECHNICAL NOTES:
-- All apps follow standard iOS container structure
-- Most likely use SQLite for local data storage
-- Check Documents/, Library/Application Support/, and Library/Caches/ directories
-- Look for .sqlite, .db, .plist, and .json files
-- Consider Core Data implementations for some apps
-
-## CONTAINER LOCATIONS:
-- Trello: /private/var/containers/Bundle/Application/61BFA770-7DAF-4FF3-8B47-1008D606FD54/
-- Reddit: /private/var/containers/Bundle/Application/7077AB3E-75C8-4A5E-A2DE-70727CC14144/
-- Pinterest: /private/var/containers/Bundle/Application/26796BF9-5A5D-441E-91F1-1EAFDAC28937/
-- PictureThis: /private/var/containers/Bundle/Application/96FA9EDC-5E58-4C40-8A60-DE6980801271/
-
-This analysis provides a clear roadmap for expanding iLEAPP's support for additional iOS applications found in real-world extractions.
