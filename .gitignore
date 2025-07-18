@@ -108,3 +108,9 @@ instance/
 .python-version
 
 /.obsidian
+
+# Forensic extraction data (large files)
+extraction/
+extraction-2/
+temp_extraction/
+.claude/
