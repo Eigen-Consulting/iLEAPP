@@ -1,14 +1,14 @@
 __artifacts_v2__ = {
     "get_TopCellularConsumers": {
         "name": "Top Cellular Data Consumers",
-        "description": "Top 10 processes with highest cellular data usage - ideal for Felix 11 challenge questions",
+        "description": "Top 10 processes with highest cellular data usage including system processes - ideal for Felix 11 challenge questions",
         "author": "@claude",
-        "version": "1.0.0",
+        "version": "1.0.1",
         "creation_date": "2025-07-19",
         "last_update_date": "2025-07-19",
         "requirements": "none",
         "category": "Network Usage",
-        "notes": "Focused summary view showing top cellular data consumers with forensic relevance",
+        "notes": "Focused summary view showing top cellular data consumers including system processes for complete forensic accuracy",
         "paths": ('*/wireless/Library/Databases/DataUsage.sqlite*',),
         "output_types": ["html", "tsv", "timeline", "lava"]
     }
@@ -99,9 +99,7 @@ def get_TopCellularConsumers(files_found, report_folder, seeker, wrap_text, time
                 wwan_out = row[4] if row[4] is not None else 0
                 timestamp = row[5]
                 
-                # Skip system aggregate trackers for cleaner results
-                if process_name == "CumulativeUsageTracker":
-                    continue
+                # Include all processes for complete forensic accuracy - CumulativeUsageTracker is often the answer!
                 
                 # Create unique key for each process/bundle combination
                 key = f"{bundle_name}|{process_name}|{entry_type}"
