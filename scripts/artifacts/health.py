@@ -204,6 +204,19 @@ __artifacts_v2__ = {
         "paths": ('*Health/healthdb_secure.sqlite*', '*Health/healthdb.sqlite*'),
         "output_types": "standard",
         "artifact_icon": 'thermometer'
+    },
+    "healthDailySteps": {
+        "name": "Health - Daily Steps",
+        "description": "Health database daily step count aggregation by date",
+        "author": "@claude-code",
+        "version": "0.1",
+        "date": "2025-07-19",
+        "requirements": "none",
+        "category": "Health",
+        "notes": "Aggregates step count data by day to show total steps for each date. Useful for forensic analysis of daily activity patterns.",
+        "paths": ('*Health/healthdb_secure.sqlite*',),
+        "output_types": "standard",
+        "artifact_icon": 'activity'
     }
 }
 
@@ -1214,4 +1227,37 @@ def healthWristTemperature(files_found, report_folder, seeker, wrap_text, timezo
         'Wrist Temperature (°F)', 'Source', 'Algorithm Version', 'Surface Temperature (°C)', 
         'Surface Temperature (°F)', 'Name', 'Manufacturer', 'Model', 'Hardware Version', 'Software Version')
         
+    return data_headers, data_list, healthdb_secure
+
+@artifact_processor
+def healthDailySteps(files_found, report_folder, seeker, wrap_text, timezone_offset):
+    data_list = []
+    healthdb_secure = ''
+
+    for file_found in files_found:
+        if file_found.endswith('healthdb_secure.sqlite'):
+           healthdb_secure = file_found
+           break
+
+    with open_sqlite_db_readonly(healthdb_secure) as db:
+        cursor = db.cursor()
+
+        cursor.execute('''
+        SELECT 
+            date(s.start_date + 978307200, 'unixepoch') as day, 
+            SUM(qs.quantity) as total_steps 
+        FROM samples s 
+        JOIN quantity_samples qs ON s.data_id = qs.data_id 
+        WHERE s.data_type = 7 
+        GROUP BY day 
+        ORDER BY day DESC
+        ''')
+    
+        all_rows = cursor.fetchall()
+
+        for row in all_rows:
+            data_list.append((row[0], int(row[1])))
+        
+    data_headers = (
+        ('Date', 'date'), 'Total Steps')
     return data_headers, data_list, healthdb_secure
