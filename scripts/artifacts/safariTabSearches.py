@@ -165,6 +165,50 @@ def get_safariTabSearches(files_found, report_folder, seeker, wrap_text, timezon
             except Exception as ex:
                 logfunc(f'Error processing BrowserState.db {file_found}: {str(ex)}')
             
+        # Handle SafariTabs.db (tab bookmarks)
+        elif 'SafariTabs' in file_found:
+            try:
+                db = open_sqlite_db_readonly(file_found)
+                cursor = db.cursor()
+
+                cursor.execute("""
+                select
+                datetime(last_modified, 'unixepoch') as timestamp,
+                title,
+                url,
+                type,
+                id
+                from bookmarks 
+                where type = 0 
+                and url IS NOT NULL 
+                and url != ''
+                and title IS NOT NULL
+                and title != ''
+                """)
+
+                all_rows = cursor.fetchall()
+                if all_rows:
+                    for row in all_rows:
+                        timestamp, title, url, bookmark_type, bookmark_id = row
+                        
+                        # Check if this title appears to be a search term
+                        if is_search_term(title):
+                            data_list.append((
+                                timestamp, 
+                                title, 
+                                url, 
+                                'N/A',  # user_visible_url equivalent
+                                'Unknown',  # opened_from_link equivalent
+                                'Unknown',  # private_browsing equivalent  
+                                'Safari Tab Bookmark',
+                                file_found
+                            ))
+                
+                db.close()
+                
+            except Exception as ex:
+                logfunc(f'Error processing SafariTabs.db {file_found}: {str(ex)}')
+        
         # Handle CloudTabs.db (iCloud synced tabs)
         elif 'CloudTabs' in file_found:
             try:
@@ -236,8 +280,16 @@ def get_safariTabSearches(files_found, report_folder, seeker, wrap_text, timezon
                 logfunc(f'Error processing CloudTabs.db {file_found}: {str(ex)}')
     
     if data_list:
-        # Sort by timestamp (most recent first)
-        data_list.sort(key=lambda x: x[0] or '', reverse=True)
+        # Sort by timestamp (most recent first), handle mixed datetime/string types
+        def sort_key(item):
+            timestamp = item[0]
+            if timestamp is None:
+                return ''
+            if isinstance(timestamp, str):
+                return timestamp
+            return timestamp.strftime('%Y-%m-%d %H:%M:%S') if hasattr(timestamp, 'strftime') else str(timestamp)
+        
+        data_list.sort(key=sort_key, reverse=True)
         
         data_headers = (
             'Timestamp',
