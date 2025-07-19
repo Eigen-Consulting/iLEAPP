@@ -8,7 +8,7 @@ __artifacts_v2__ = {
         "requirements": "none",
         "category": "Bluetooth",
         "notes": "Parses both com.apple.MobileBluetooth.ledevices.paired.db and com.apple.MobileBluetooth.devices.plist, deduplicates by MAC address",
-        "paths": ('**/com.apple.MobileBluetooth.ledevices.paired.db', '**/com.apple.MobileBluetooth.devices.plist'),
+        "paths": ('**/com.apple.MobileBluetooth.ledevices.paired.db*', '**/com.apple.MobileBluetooth.devices.plist'),
         "output_types": "standard"
     }
 }
@@ -55,14 +55,21 @@ def get_bluetoothPaired(files_found, report_folder, seeker, wrap_text, timezone_
                     uuid, name, name_origin, address, resolved_address, last_seen, last_connection = row
                     
                     # Use address as key (MAC address), fallback to resolved address if needed
-                    mac_key = address if address else resolved_address
-                    if mac_key:
+                    raw_address = address if address else resolved_address
+                    if raw_address:
+                        # Normalize MAC address - remove "Public" or "Random" prefixes
+                        mac_key = raw_address.replace("Public ", "").replace("Random ", "").strip()
+                        
                         # Store or update device info
                         if mac_key not in unique_devices:
                             unique_devices[mac_key] = {}
+                            logfunc(f"New device from database: {mac_key} ({name})")
+                        else:
+                            logfunc(f"Updating existing device from database: {mac_key} ({name})")
                         
                         unique_devices[mac_key].update({
                             'mac_address': mac_key,
+                            'raw_address': raw_address,
                             'name_db': name,
                             'name_origin': name_origin,
                             'uuid': uuid,
@@ -90,6 +97,9 @@ def get_bluetoothPaired(files_found, report_folder, seeker, wrap_text, timezone_
                     # Initialize device entry if not exists
                     if mac_address not in unique_devices:
                         unique_devices[mac_address] = {}
+                        logfunc(f"New device from plist: {mac_address} ({device_info.get('Name', 'Unknown')})")
+                    else:
+                        logfunc(f"Updating existing device from plist: {mac_address} ({device_info.get('Name', 'Unknown')})")
                     
                     # Extract relevant information from plist
                     last_seen = device_info.get('LastSeenTime', '')
@@ -139,8 +149,11 @@ def get_bluetoothPaired(files_found, report_folder, seeker, wrap_text, timezone_
             sources.append('Plist')
         source_info = ', '.join(sources)
         
+        # Use raw address if available (shows "Public" prefix), otherwise use normalized MAC
+        display_address = device.get('raw_address', mac_address)
+        
         data_list.append((
-            mac_address,
+            display_address,
             best_name,
             device.get('default_name', ''),
             device.get('user_name_key', ''),
