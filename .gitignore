@@ -114,3 +114,18 @@ extraction/
 extraction-2/
 temp_extraction/
 .claude/
+
+# Testing and analysis artifacts
+test_*.ilprofile
+analyze_*.py
+debug_*.py
+step_by_step_*.py
+test_dashboard.py
+apps_not_supported.json
+priority_apps_for_ileapp.md
+extraction*_bundle_ids.json
+*.sqlite-shm
+*.sqlite-wal
+scripts/artifacts/*.backup
+twitter_analysis_report.md
+wechat_analysis.md
