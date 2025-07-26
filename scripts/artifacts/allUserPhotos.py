@@ -53,6 +53,23 @@ from scripts.ilapfuncs import artifact_processor, get_file_path, get_sqlite_db_r
 from scripts.aggregation_engine import AggregationEngine
 
 
+def calculate_file_hash(file_path, algorithm='sha256'):
+    """Calculate file hash for deduplication."""
+    try:
+        if not os.path.exists(file_path):
+            return ''
+        
+        hash_obj = hashlib.new(algorithm)
+        with open(file_path, 'rb') as f:
+            # Read file in chunks to handle large files
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_obj.update(chunk)
+        return hash_obj.hexdigest()
+    except Exception as e:
+        logfunc(f"Error calculating hash for {file_path}: {str(e)}")
+        return ''
+
+
 @artifact_processor
 def allUserPhotos(files_found, report_folder, seeker, wrap_text, timezone_offset):
     """
@@ -135,26 +152,73 @@ def allUserPhotos(files_found, report_folder, seeker, wrap_text, timezone_offset
 
 
 def process_photos_sqlite(files_found, data_list, seen_files, seen_hashes, timezone_offset):
-    """Process native Photos.sqlite database."""
+    """Process native Photos.sqlite database with proper iOS version handling."""
     processed_count = 0
     
     for file_path in files_found:
         try:
-            # Determine iOS version and use appropriate table/query
+            # Determine iOS version and schema
             ios_version = iOS.get_version()
-            if ios_version and version.parse(ios_version) >= version.parse("14"):
-                table_name = "ZASSET"
+            logfunc(f"Processing Photos.sqlite for iOS version: {ios_version}")
+            
+            # Check what tables actually exist in this database
+            db = open_sqlite_db_readonly(str(file_path))
+            cursor = db.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+            tables = [row[0] for row in cursor.fetchall()]
+            logfunc(f"Available tables in Photos.sqlite: {tables}")
+            
+            # Determine correct table and join names based on what exists
+            if 'ZASSET' in tables:
+                # iOS 14+
+                asset_table = 'ZASSET'
+                if 'Z_26ASSETS' in tables:
+                    album_join = 'Z_26ASSETS'
+                    album_asset_col = 'Z_3ASSETS'  
+                    album_album_col = 'Z_26ALBUMS'
+                elif 'Z_23ASSETS' in tables:
+                    album_join = 'Z_23ASSETS'
+                    album_asset_col = 'Z_30ASSETS'
+                    album_album_col = 'Z_23ALBUMS'
+                else:
+                    album_join = None
+            elif 'ZGENERICASSET' in tables:
+                # iOS 11-13
+                asset_table = 'ZGENERICASSET'
+                if 'Z_26ASSETS' in tables:
+                    album_join = 'Z_26ASSETS'
+                    album_asset_col = 'Z_34ASSETS'
+                    album_album_col = 'Z_26ALBUMS'
+                elif 'Z_23ASSETS' in tables:
+                    album_join = 'Z_23ASSETS'
+                    album_asset_col = 'Z_30ASSETS'
+                    album_album_col = 'Z_23ALBUMS'
+                else:
+                    album_join = None
             else:
-                table_name = "ZGENERICASSET"
+                logfunc(f"Unknown Photos.sqlite schema in {file_path} - no ZASSET or ZGENERICASSET table found")
+                db.close()
+                continue
+            
+            # Build query based on available schema
+            if album_join:
+                album_join_clause = f"""
+                LEFT JOIN {album_join} ON {asset_table}.Z_PK = {album_join}.{album_asset_col}  
+                LEFT JOIN ZGENERICALBUM ON ZGENERICALBUM.Z_PK = {album_join}.{album_album_col}
+                """
+                album_select = "ZGENERICALBUM.ZTITLE as album_title"
+            else:
+                album_join_clause = ""
+                album_select = "'' as album_title"
             
             query = f"""
             SELECT 
-                datetime({table_name}.ZDATECREATED + 978307200, 'unixepoch') as timestamp,
-                datetime({table_name}.ZADDEDDATE + 978307200, 'unixepoch') as date_added,
-                {table_name}.ZFILENAME as filename,
-                {table_name}.ZDIRECTORY as directory,
+                datetime({asset_table}.ZDATECREATED + 978307200, 'unixepoch') as timestamp,
+                datetime({asset_table}.ZADDEDDATE + 978307200, 'unixepoch') as date_added,
+                {asset_table}.ZFILENAME as filename,
+                {asset_table}.ZDIRECTORY as directory,
                 ZADDITIONALASSETATTRIBUTES.ZORIGINALFILESIZE as file_size,
-                CASE {table_name}.ZKIND 
+                CASE {asset_table}.ZKIND 
                     WHEN 0 THEN 'Photo'
                     WHEN 1 THEN 'Video'
                     ELSE 'Unknown'
@@ -162,58 +226,99 @@ def process_photos_sqlite(files_found, data_list, seen_files, seen_hashes, timez
                 ZADDITIONALASSETATTRIBUTES.ZCREATORBUNDLEID as creator_bundle_id,
                 ZADDITIONALASSETATTRIBUTES.ZEDITORBUNDLEID as editor_bundle_id,
                 ZADDITIONALASSETATTRIBUTES.ZORIGINALFILENAME as original_filename,
-                CASE WHEN {table_name}.ZLATITUDE != -180.0 THEN {table_name}.ZLATITUDE ELSE '' END as latitude,
-                CASE WHEN {table_name}.ZLONGITUDE != -180.0 THEN {table_name}.ZLONGITUDE ELSE '' END as longitude,
-                ZGENERICALBUM.ZTITLE as album_title,
-                {table_name}.ZUUID as uuid
-            FROM {table_name}
-            LEFT JOIN ZADDITIONALASSETATTRIBUTES ON {table_name}.ZADDITIONALATTRIBUTES = ZADDITIONALASSETATTRIBUTES.Z_PK
-            LEFT JOIN Z_26ASSETS ON {table_name}.Z_PK = Z_26ASSETS.Z_3ASSETS  
-            LEFT JOIN ZGENERICALBUM ON ZGENERICALBUM.Z_PK = Z_26ASSETS.Z_26ALBUMS
-            WHERE {table_name}.ZTRASHEDSTATE != 1  -- Exclude trashed photos
-            ORDER BY {table_name}.ZDATECREATED DESC
+                CASE WHEN {asset_table}.ZLATITUDE != -180.0 THEN {asset_table}.ZLATITUDE ELSE '' END as latitude,
+                CASE WHEN {asset_table}.ZLONGITUDE != -180.0 THEN {asset_table}.ZLONGITUDE ELSE '' END as longitude,
+                {album_select},
+                {asset_table}.ZUUID as uuid,
+                {asset_table}.ZSAVEDASSETTYPE as saved_asset_type
+            FROM {asset_table}
+            LEFT JOIN ZADDITIONALASSETATTRIBUTES ON {asset_table}.ZADDITIONALATTRIBUTES = ZADDITIONALASSETATTRIBUTES.Z_PK
+            {album_join_clause}
+            WHERE {asset_table}.ZTRASHEDSTATE != 1 OR {asset_table}.ZTRASHEDSTATE IS NULL  -- Exclude trashed photos
+            ORDER BY {asset_table}.ZDATECREATED DESC
             """
             
-            records = get_sqlite_db_records(str(file_path), query)
+            cursor.execute(query)
+            records = cursor.fetchall()
             
-            for record in records:
+            # Convert to dictionary-like access
+            column_names = [description[0] for description in cursor.description]
+            
+            for record_tuple in records:
+                # Convert tuple to dictionary for easier access
+                record = dict(zip(column_names, record_tuple))
+                
                 # Build file path
-                if record['directory'] and record['filename']:
+                if record.get('directory') and record.get('filename'):
                     full_path = f"{record['directory']}/{record['filename']}"
                 else:
-                    full_path = record['filename'] or 'Unknown'
+                    full_path = record.get('filename') or 'Unknown'
                 
-                # Skip if already seen
+                # Skip if already seen by path
                 if full_path in seen_files:
                     continue
                     
+                # Calculate file hash for content-based deduplication
+                file_hash = ''
+                if record.get('filename'):
+                    # Try to find actual file for hashing
+                    photo_file_paths = [
+                        f"{str(file_path).replace('Photos.sqlite', '')}../DCIM/{record.get('directory', '')}/{record.get('filename')}",
+                        f"{str(file_path).replace('PhotoData/Photos.sqlite', '')}Media/DCIM/{record.get('directory', '')}/{record.get('filename')}",
+                        f"{str(file_path).replace('PhotoData/Photos.sqlite', '')}Media/{record.get('directory', '')}/{record.get('filename')}"
+                    ]
+                    
+                    for photo_path in photo_file_paths:
+                        if os.path.exists(photo_path):
+                            file_hash = calculate_file_hash(photo_path)
+                            if file_hash and file_hash in seen_hashes:
+                                continue  # Skip duplicate content
+                            if file_hash:
+                                seen_hashes.add(file_hash)
+                            break
+                
                 seen_files.add(full_path)
                 
                 # Determine source app
-                creator = record['creator_bundle_id'] or 'com.apple.camera'
+                creator = record.get('creator_bundle_id') or 'com.apple.camera'
                 source_app = get_friendly_app_name(creator)
+                
+                # Enhanced metadata based on saved asset type
+                saved_type = record.get('saved_asset_type', 0)
+                if saved_type == 0:
+                    asset_source = "Saved from other source"
+                elif saved_type == 2:
+                    asset_source = "Photo Streams Data"
+                elif saved_type == 3:
+                    asset_source = "Made/saved with this device"
+                elif saved_type == 7:
+                    asset_source = "Deleted/Recovered"
+                else:
+                    asset_source = "Camera Roll"
                 
                 # Add to results
                 data_list.append((
-                    record['timestamp'],
-                    record['date_added'], 
+                    record.get('timestamp'),
+                    record.get('date_added'), 
                     source_app,
-                    record['filename'],
+                    record.get('filename'),
                     full_path,
-                    record['file_size'] or 0,
-                    record['media_type'],
-                    record['creator_bundle_id'],
-                    record['editor_bundle_id'],
-                    record['original_filename'],
-                    record['latitude'],
-                    record['longitude'],
-                    record['album_title'] or 'Camera Roll',
-                    f"UUID: {record['uuid']}" if record['uuid'] else '',
-                    '',  # Hash placeholder
+                    record.get('file_size') or 0,
+                    record.get('media_type'),
+                    record.get('creator_bundle_id'),
+                    record.get('editor_bundle_id'),
+                    record.get('original_filename'),
+                    str(record.get('latitude', '')),
+                    str(record.get('longitude', '')),
+                    record.get('album_title') or asset_source,
+                    f"UUID: {record.get('uuid')}, Asset Type: {asset_source}" if record.get('uuid') else f"Asset Type: {asset_source}",
+                    file_hash,
                     str(file_path)
                 ))
                 
                 processed_count += 1
+            
+            db.close()
                 
         except Exception as e:
             logfunc(f"Error processing Photos.sqlite {file_path}: {str(e)}")
@@ -307,77 +412,165 @@ def process_sms_attachments(files_found, data_list, seen_files, seen_hashes, see
 
 
 def process_whatsapp_media(files_found, data_list, seen_files, seen_hashes, seeker, timezone_offset):
-    """Process WhatsApp media files."""
+    """Process WhatsApp media files using database queries and file discovery."""
     processed_count = 0
     
     for db_path in files_found:
         try:
-            # Look for media files in the same app group
-            app_group_path = str(db_path).split('/ChatStorage.sqlite')[0]
-            media_patterns = [
-                f"{app_group_path}/Message/Media/**/*",
-                f"{app_group_path}/Media/**/*"
-            ]
-            
-            # Find all media files
-            media_files = []
-            for pattern in media_patterns:
-                found_files = seeker.search(pattern)
-                if found_files:
-                    media_files.extend(found_files)
-            
-            # Filter for image/video files
-            image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'}
-            video_extensions = {'.mp4', '.mov', '.avi', '.m4v', '.3gp'}
-            
-            for media_file in media_files:
-                file_path = str(media_file)
+            # Try to get media info from WhatsApp database first
+            try:
+                media_query = """
+                SELECT 
+                    ZWAMEDIAITEM.ZMEDIALOCALPATH as media_path,
+                    datetime(ZWAMESSAGE.ZMESSAGEDATE + 978307200, 'unixepoch') as message_date,
+                    ZWAMEDIAITEM.ZFILESIZE as file_size,
+                    ZWAMEDIAITEM.ZMEDIATYPE as media_type_id,
+                    ZWAMESSAGE.ZFROMJID as from_jid,
+                    ZWAMESSAGE.ZTOJID as to_jid
+                FROM ZWAMEDIAITEM
+                LEFT JOIN ZWAMESSAGE ON ZWAMEDIAITEM.ZMESSAGE = ZWAMESSAGE.Z_PK
+                WHERE ZWAMEDIAITEM.ZMEDIALOCALPATH IS NOT NULL
+                ORDER BY ZWAMESSAGE.ZMESSAGEDATE DESC
+                """
                 
-                if file_path in seen_files:
-                    continue
+                db_records = get_sqlite_db_records(str(db_path), media_query)
+                
+                for record in db_records:
+                    media_path = record['media_path']
+                    if not media_path or media_path in seen_files:
+                        continue
                     
-                file_ext = Path(file_path).suffix.lower()
+                    # Map WhatsApp media type IDs to readable names
+                    media_type_id = record['media_type_id'] or 0
+                    if media_type_id == 1:
+                        media_type = 'Photo'
+                    elif media_type_id == 2:
+                        media_type = 'Video'
+                    elif media_type_id == 3:
+                        media_type = 'Audio'
+                    else:
+                        media_type = 'Media'
+                    
+                    # Skip non-visual media
+                    if media_type not in ['Photo', 'Video']:
+                        continue
+                    
+                    seen_files.add(media_path)
+                    filename = os.path.basename(media_path)
+                    
+                    # Build chat context
+                    chat_context = 'WhatsApp Chat'
+                    if record['from_jid'] and record['to_jid']:
+                        chat_context = f"WhatsApp: {record['from_jid']} -> {record['to_jid']}"
+                    
+                    # Calculate hash if file exists
+                    file_hash = ''
+                    app_group_path = str(db_path).split('/ChatStorage.sqlite')[0]
+                    full_media_path = f"{app_group_path}/{media_path}"
+                    if os.path.exists(full_media_path):
+                        file_hash = calculate_file_hash(full_media_path)
+                        if file_hash in seen_hashes:
+                            continue
+                        if file_hash:
+                            seen_hashes.add(file_hash)
+                    
+                    data_list.append((
+                        record['message_date'],
+                        record['message_date'],
+                        'WhatsApp',
+                        filename,
+                        media_path,
+                        record['file_size'] or 0,
+                        media_type,
+                        'net.whatsapp.WhatsApp',
+                        '',
+                        filename,
+                        '',  # No location data in WhatsApp media table
+                        '',
+                        chat_context,
+                        f'WhatsApp {media_type}',
+                        file_hash,
+                        str(db_path)
+                    ))
+                    
+                    processed_count += 1
+                    
+            except Exception as db_error:
+                logfunc(f"Could not query WhatsApp database {db_path}: {str(db_error)}")
                 
-                if file_ext in image_extensions:
-                    media_type = 'Photo'
-                elif file_ext in video_extensions:
-                    media_type = 'Video'
-                else:
-                    continue  # Skip non-media files
+                # Fallback to file system discovery
+                app_group_path = str(db_path).split('/ChatStorage.sqlite')[0]
+                media_patterns = [
+                    f"{app_group_path}/Message/Media/**/*",
+                    f"{app_group_path}/Media/**/*"
+                ]
                 
-                seen_files.add(file_path)
+                # Find all media files
+                media_files = []
+                for pattern in media_patterns:
+                    found_files = seeker.search(pattern)
+                    if found_files:
+                        media_files.extend(found_files)
                 
-                # Get file stats
-                try:
-                    file_stat = os.stat(file_path)
-                    file_size = file_stat.st_size
-                    timestamp = datetime.fromtimestamp(file_stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
-                except:
-                    file_size = 0
-                    timestamp = ''
+                # Filter for image/video files
+                image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'}
+                video_extensions = {'.mp4', '.mov', '.avi', '.m4v', '.3gp'}
                 
-                filename = os.path.basename(file_path)
-                
-                data_list.append((
-                    timestamp,
-                    timestamp,  # Use same timestamp for both
-                    'WhatsApp',
-                    filename,
-                    file_path,
-                    file_size,
-                    media_type,
-                    'net.whatsapp.WhatsApp',
-                    '',
-                    filename,
-                    '',  # No location data
-                    '',
-                    'WhatsApp Chat',
-                    'WhatsApp media file',
-                    '',  # Hash placeholder
-                    str(db_path)
-                ))
-                
-                processed_count += 1
+                for media_file in media_files:
+                    file_path = str(media_file)
+                    
+                    if file_path in seen_files:
+                        continue
+                        
+                    file_ext = Path(file_path).suffix.lower()
+                    
+                    if file_ext in image_extensions:
+                        media_type = 'Photo'
+                    elif file_ext in video_extensions:
+                        media_type = 'Video'
+                    else:
+                        continue  # Skip non-media files
+                    
+                    # Calculate hash for deduplication
+                    file_hash = calculate_file_hash(file_path)
+                    if file_hash in seen_hashes:
+                        continue
+                    if file_hash:
+                        seen_hashes.add(file_hash)
+                    
+                    seen_files.add(file_path)
+                    
+                    # Get file stats
+                    try:
+                        file_stat = os.stat(file_path)
+                        file_size = file_stat.st_size
+                        timestamp = datetime.fromtimestamp(file_stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                    except:
+                        file_size = 0
+                        timestamp = ''
+                    
+                    filename = os.path.basename(file_path)
+                    
+                    data_list.append((
+                        timestamp,
+                        timestamp,  # Use same timestamp for both
+                        'WhatsApp',
+                        filename,
+                        file_path,
+                        file_size,
+                        media_type,
+                        'net.whatsapp.WhatsApp',
+                        '',
+                        filename,
+                        '',  # No location data
+                        '',
+                        'WhatsApp Chat',
+                        'WhatsApp media file',
+                        file_hash,
+                        str(db_path)
+                    ))
+                    
+                    processed_count += 1
                 
         except Exception as e:
             logfunc(f"Error processing WhatsApp media {db_path}: {str(e)}")
