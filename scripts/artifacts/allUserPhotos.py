@@ -408,36 +408,58 @@ def process_photos_sqlite(files_found, data_list, seen_files, seen_hashes, timez
                 # Convert tuple to dictionary for easier access
                 record = dict(zip(column_names, record_tuple))
                 
-                # Build file path
+                # Build database relative path for initial deduplication
                 if record.get('directory') and record.get('filename'):
-                    full_path = f"{record['directory']}/{record['filename']}"
+                    db_relative_path = f"{record['directory']}/{record['filename']}"
                 else:
-                    full_path = record.get('filename') or 'Unknown'
+                    db_relative_path = record.get('filename') or 'Unknown'
                 
-                # Skip if already seen by path
-                if full_path in seen_files:
+                # Skip if already seen by database path
+                if db_relative_path in seen_files:
                     continue
                     
-                # Calculate file hash for content-based deduplication
+                # Try to find actual filesystem path and calculate hash
                 file_hash = ''
+                actual_filesystem_path = db_relative_path  # Default to database path
+                path_verified = False
+                
                 if record.get('filename'):
-                    # Try to find actual file for hashing
+                    # Comprehensive path search including discovered patterns
                     photo_file_paths = [
+                        # Standard DCIM paths
                         f"{str(file_path).replace('Photos.sqlite', '')}../DCIM/{record.get('directory', '')}/{record.get('filename')}",
                         f"{str(file_path).replace('PhotoData/Photos.sqlite', '')}Media/DCIM/{record.get('directory', '')}/{record.get('filename')}",
-                        f"{str(file_path).replace('PhotoData/Photos.sqlite', '')}Media/{record.get('directory', '')}/{record.get('filename')}"
+                        # Standard PhotoData paths
+                        f"{str(file_path).replace('PhotoData/Photos.sqlite', '')}Media/{record.get('directory', '')}/{record.get('filename')}",
+                        # Metadata/PhotoData paths (discovered pattern)
+                        f"{str(file_path).replace('PhotoData/Photos.sqlite', '')}Media/PhotoData/Metadata/{record.get('directory', '')}/{record.get('filename')}",
+                        # CPLAssets patterns
+                        f"{str(file_path).replace('Photos.sqlite', '')}../{record.get('directory', '')}/{record.get('filename')}",
+                        # Direct PhotoData patterns  
+                        f"{str(file_path).replace('Photos.sqlite', '')}../PhotoData/{record.get('directory', '')}/{record.get('filename')}"
                     ]
                     
                     for photo_path in photo_file_paths:
                         if os.path.exists(photo_path):
+                            # Calculate hash
                             file_hash = calculate_file_hash(photo_path)
                             if file_hash and file_hash in seen_hashes:
                                 continue  # Skip duplicate content
                             if file_hash:
                                 seen_hashes.add(file_hash)
+                            
+                            # Use actual filesystem path for reporting
+                            # Convert to relative path from mobile directory for consistency
+                            if '/mobile/' in photo_path:
+                                # Extract path relative to mobile directory
+                                mobile_index = photo_path.find('/mobile/') + len('/mobile/')
+                                actual_filesystem_path = photo_path[mobile_index:]
+                            else:
+                                actual_filesystem_path = photo_path
+                            path_verified = True
                             break
                 
-                seen_files.add(full_path)
+                seen_files.add(db_relative_path)
                 
                 # Get source app using the dynamic column (could be any of the fallback options)
                 source_app_identifier = record.get(source_app_alias) or 'com.apple.camera'
@@ -462,7 +484,7 @@ def process_photos_sqlite(files_found, data_list, seen_files, seen_hashes, timez
                     record.get('date_added'), 
                     source_app,
                     record.get('filename'),
-                    full_path,
+                    actual_filesystem_path,
                     record.get('file_size') or 0,
                     record.get('media_type'),
                     source_app_identifier,  # Use the actual identifier we found
@@ -471,7 +493,7 @@ def process_photos_sqlite(files_found, data_list, seen_files, seen_hashes, timez
                     str(record.get('latitude', '')),
                     str(record.get('longitude', '')),
                     record.get('album_title') or asset_source,
-                    f"UUID: {record.get('uuid')}, Asset Type: {asset_source}" if record.get('uuid') else f"Asset Type: {asset_source}",
+                    f"UUID: {record.get('uuid')}, Asset Type: {asset_source}, Path Verified: {path_verified}" if record.get('uuid') else f"Asset Type: {asset_source}, Path Verified: {path_verified}",
                     file_hash,
                     str(file_path)
                 ))
@@ -523,11 +545,21 @@ def process_sms_attachments(files_found, data_list, seen_files, seen_hashes, see
             records = get_sqlite_db_records(str(sms_db_path), query)
             
             for record in records:
-                file_path = record['file_path']
-                if not file_path or file_path in seen_files:
+                db_file_path = record['file_path']
+                if not db_file_path or db_file_path in seen_files:
                     continue
                     
-                seen_files.add(file_path)
+                # Convert SMS database path to actual filesystem path
+                if db_file_path.startswith('~/Library/SMS/'):
+                    # Remove ~ and add /mobile prefix for actual filesystem path
+                    actual_file_path = f"Library/SMS/{db_file_path[14:]}"  # Remove ~/Library/SMS/
+                    path_verified = True
+                else:
+                    # Use database path as fallback
+                    actual_file_path = db_file_path
+                    path_verified = False
+                    
+                seen_files.add(db_file_path)
                 
                 # Determine media type
                 mime_type = record['mime_type'] or ''
@@ -539,7 +571,7 @@ def process_sms_attachments(files_found, data_list, seen_files, seen_hashes, see
                     media_type = 'Media'
                 
                 # Get filename
-                filename = os.path.basename(file_path) if file_path else record['transfer_name']
+                filename = os.path.basename(actual_file_path) if actual_file_path else record['transfer_name']
                 
                 # Determine service
                 service = record['service'] or 'Unknown'
@@ -550,7 +582,7 @@ def process_sms_attachments(files_found, data_list, seen_files, seen_hashes, see
                     record['attachment_created'], 
                     source_app,
                     filename,
-                    file_path,
+                    actual_file_path,
                     record['file_size'] or 0,
                     media_type,
                     'com.apple.MobileSMS',
@@ -559,7 +591,7 @@ def process_sms_attachments(files_found, data_list, seen_files, seen_hashes, see
                     '',  # No location data
                     '',
                     f"Chat: {record['chat_contact']}" if record['chat_contact'] else 'Messages',
-                    f"Service: {service}",
+                    f"Service: {service}, Path Verified: {path_verified}",
                     '',  # Hash placeholder
                     str(sms_db_path)
                 ))
@@ -703,16 +735,36 @@ def process_whatsapp_media(files_found, data_list, seen_files, seen_hashes, seek
                 if from_jid or to_jid:
                     chat_context = f"WhatsApp: {from_jid or 'Unknown'} -> {to_jid or 'Unknown'}"
                 
-                # Calculate hash if file exists
+                # Try to find actual filesystem path and calculate hash
                 file_hash = ''
                 app_group_path = str(db_path).split('/ChatStorage.sqlite')[0]
-                full_media_path = f"{app_group_path}/{media_path}"
-                if os.path.exists(full_media_path):
-                    file_hash = calculate_file_hash(full_media_path)
-                    if file_hash in seen_hashes:
-                        continue
-                    if file_hash:
-                        seen_hashes.add(file_hash)
+                actual_media_path = media_path  # Default to database path
+                path_verified = False
+                
+                # Try multiple WhatsApp path patterns
+                whatsapp_path_candidates = [
+                    f"{app_group_path}/{media_path}",  # Direct database path
+                    f"{app_group_path}/Message/{media_path}",  # With Message prefix (discovered pattern)
+                    # Also try cache location
+                    f"{app_group_path.replace('/Shared/AppGroup/', '/Data/Application/')}/Library/Caches/ChatMedia/{media_path.replace('Media/', '')}"
+                ]
+                
+                for candidate_path in whatsapp_path_candidates:
+                    if os.path.exists(candidate_path):
+                        file_hash = calculate_file_hash(candidate_path)
+                        if file_hash in seen_hashes:
+                            continue
+                        if file_hash:
+                            seen_hashes.add(file_hash)
+                        
+                        # Use relative path from mobile directory for consistency
+                        if '/mobile/' in candidate_path:
+                            mobile_index = candidate_path.find('/mobile/') + len('/mobile/')
+                            actual_media_path = candidate_path[mobile_index:]
+                        else:
+                            actual_media_path = candidate_path
+                        path_verified = True
+                        break
                 
                 # Use message date or current time as fallback
                 message_date = record.get('message_date') or datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -722,7 +774,7 @@ def process_whatsapp_media(files_found, data_list, seen_files, seen_hashes, seek
                     message_date,
                     'WhatsApp',
                     filename,
-                    media_path,
+                    actual_media_path,
                     record.get('file_size') or 0,
                     media_type,
                     'net.whatsapp.WhatsApp',
@@ -731,7 +783,7 @@ def process_whatsapp_media(files_found, data_list, seen_files, seen_hashes, seek
                     '',  # No location data in WhatsApp media table
                     '',
                     chat_context,
-                    f'WhatsApp {media_type}',
+                    f'WhatsApp {media_type}, Path Verified: {path_verified}',
                     file_hash,
                     str(db_path)
                 ))
