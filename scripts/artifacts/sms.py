@@ -36,6 +36,7 @@ from scripts.ilapfuncs import is_platform_windows, open_sqlite_db_readonly, sani
 from scripts.chat_rendering import render_chat, chat_HTML
 from scripts.ilapfuncs import artifact_processor, \
     get_file_path, get_sqlite_db_records
+from scripts.aggregation_engine import AggregationEngine
 
 @artifact_processor
 def sms(files_found, report_folder, seeker, wrap_text, timezone_offset):
@@ -147,5 +148,9 @@ def sms(files_found, report_folder, seeker, wrap_text, timezone_offset):
     report.write_raw_html(chat_HTML)
     report.add_script(render_chat(sms_df))
     report.end_artifact_report()
+
+    # Report messaging statistics to aggregation engine
+    if data_list:
+        AggregationEngine.report_messaging_count("SMS & iMessage", len(data_list))
 
     return data_headers, data_list, source_path

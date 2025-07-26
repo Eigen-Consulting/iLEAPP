@@ -2,6 +2,8 @@ You're a coding agent that will help fill out artifact scripts for iLEAPP. Right
 
 Use the Task tool whenever you have a long running research task that feels like a large divergence.
 
+For each app you work on, you should make a text file that you read and update from to keep track of learnings and progress.
+
 <ileapp-artifact-guide>
 Below is a soup‑to‑nuts playbook for adding support for a brand‑new iOS application to **iLEAPP** when you already have a full file‑system or backup extraction to study. Follow each numbered phase in order; treat bold bullets as individual tasks you should literally check off. (The steps assume you are familiar with basic Python and Git workflows.)
 
@@ -9,7 +11,7 @@ Below is a soup‑to‑nuts playbook for adding support for a brand‑new iOS 
 
 ## 1  Set up your lab
 
-## You are already living in an iLEAPP environment. You have a full file‑system or backup extraction to study. The extraction is in the folder `extraction`. You'll need to set up your environment by running `source .venv/bin/activate`.
+## You are already living in an iLEAPP environment. You have a full file‑system or backup extraction to study. The extractions are in the folder `extraction` and `extraction-2`. You'll need to set up your environment by running `source .venv/bin/activate`.
 
 ## 2  Map the new app’s data structures
 

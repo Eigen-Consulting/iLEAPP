@@ -29,6 +29,7 @@ import inspect
 import os
 
 from scripts.ilapfuncs import artifact_processor, open_sqlite_db_readonly, check_in_media, logfunc
+from scripts.aggregation_engine import AggregationEngine
 
 # Code courtesy of Stek29 / Victor Oreshkin
 # Github: https://gist.github.com/stek29
@@ -875,5 +876,9 @@ def telegramMessages(context):
             finally:
                 if db_connection:
                     db_connection.close()
+
+    # Report messaging statistics to aggregation engine
+    if data_list:
+        AggregationEngine.report_messaging_count("Telegram", len(data_list))
 
     return data_headers, data_list, report_file_path

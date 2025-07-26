@@ -79,6 +79,7 @@ from scripts.ilapfuncs import logfunc, tsv, timeline, open_sqlite_db_readonly
 from scripts.ilapfuncs import artifact_processor, \
     does_table_exist_in_db, does_view_exist_in_db, get_sqlite_multiple_db_records, \
     convert_unix_ts_to_utc
+from scripts.aggregation_engine import AggregationEngine
 
 
 @artifact_processor
@@ -175,6 +176,10 @@ def facebookMessengerChats(files_found, report_folder, seeker, wrap_text, timezo
             else:
                 record_data.append(record[key])
         data_list.append(tuple(record_data))
+
+    # Report messaging statistics to aggregation engine
+    if data_list:
+        AggregationEngine.report_messaging_count("Facebook Messenger", len(data_list))
 
     return data_headers, data_list, source_path
 

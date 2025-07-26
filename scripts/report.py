@@ -8,6 +8,7 @@ from scripts.html_parts import *
 from scripts.ilapfuncs import logfunc
 from scripts.version_info import ileapp_version, ileapp_contributors
 from scripts.report_icons import icon_mappings, feather_icon_names
+from scripts.dashboard_generator import generate_dashboard_html, get_chart_js_script
 
 def get_icon_name(category, artifact):
     """
@@ -164,7 +165,16 @@ def create_index_html(reportfolderbase, time_in_secs, time_HMS, extraction_type,
     case_list = []
     agency_logo_mimetype = ''
     agency_logo_b64 = ''
+    # Generate dashboard HTML first
+    dashboard_html = generate_dashboard_html(reportfolderbase)
+    
     content = '<br />'
+    
+    # Add dashboard if we have data
+    if dashboard_html:
+        content += dashboard_html
+        content += '<br />'
+    
     content += """
                    <div class="card bg-white" style="padding: 20px;">
                    <h2 class="card-title">Case Information</h2>
@@ -243,6 +253,7 @@ def create_index_html(reportfolderbase, time_in_secs, time_HMS, extraction_type,
     html_reportfolderbase.mkdir(exist_ok=True)
     with html_reportfolderbase.joinpath(filename).open('w', encoding='utf8') as f:
         f.write(page_header.format(page_title))
+        f.write(get_chart_js_script())  # Add Chart.js for dashboard charts
         f.write(body_start.format(f"iLEAPP {ileapp_version}"))
         f.write(body_sidebar_setup + active_nav_list_data + body_sidebar_trailer)
         f.write(body_main_header + body_main_data_title.format(body_heading, body_description))

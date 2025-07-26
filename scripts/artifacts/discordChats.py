@@ -22,6 +22,7 @@ import os
 import re
 
 from scripts.ilapfuncs import artifact_processor, logfunc, logdevinfo, media_to_html, get_resolution_for_model_id, get_file_path, get_sqlite_db_records
+from scripts.aggregation_engine import AggregationEngine
 
 @artifact_processor
 def discordChats(files_found, report_folder, seeker, wrap_text, timezone_offset):
@@ -239,4 +240,9 @@ def discordChats(files_found, report_folder, seeker, wrap_text, timezone_offset)
             #logfunc('JSON error: %s' % e)
 
     data_headers = ('Timestamp','Edited Timestamp','Username','Bot?','Content','Attachments','User ID','Channel ID','Embedded Author','Author URL','Author Icon URL','Embedded URL','Embedded Script','Footer Text', 'Footer Icon URL', 'Source File')   
+    
+    # Report messaging statistics to aggregation engine
+    if data_list:
+        AggregationEngine.report_messaging_count("Discord", len(data_list))
+    
     return data_headers, data_list, 'See source file(s) below:'

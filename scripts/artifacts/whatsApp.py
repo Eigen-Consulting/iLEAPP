@@ -42,6 +42,19 @@ __artifacts_v2__ = {
         'paths': ('*/mobile/Containers/Shared/AppGroup/*/ContactsV2.sqlite*',),
         'output_types': ['html', 'tsv', 'lava'],
         'artifact_icon': 'users'
+    },
+    'whatsAppMessageGapAnalysis': {
+        'name': 'WhatsApp - Message Gap Analysis',
+        'description': 'Analyze primary key gaps in WhatsApp messages to detect deleted messages',
+        'author': '@assistant',
+        'creation_date': '2025-07-19',
+        'last_update_date': '2025-07-19',
+        'requirements': '',
+        'category': 'WhatsApp',
+        'notes': 'Identifies deleted messages by analyzing gaps in Z_PK sequence',
+        'paths': ('*/mobile/Containers/Shared/AppGroup/*/ChatStorage.sqlite*',),
+        'output_types': ['html', 'tsv', 'lava'],
+        'artifact_icon': 'alert-triangle'
     }
 }
 
@@ -53,6 +66,7 @@ from pathlib import Path
 from scripts.ilapfuncs import artifact_processor, \
     get_file_path, get_sqlite_db_records, attach_sqlite_db_readonly, \
     check_in_media, convert_cocoa_core_data_ts_to_utc, logfunc
+from scripts.aggregation_engine import AggregationEngine
 
 
 @artifact_processor
@@ -237,5 +251,93 @@ def whatsAppMessages(files_found, report_folder, seeker, wrap_text, timezone_off
         data_list.append((message_date, sender, record['ZFROMJID'], receiver, record['ZTOJID'],
                           record['ZTEXT'], attach_file, thumb, record['ZSTARRED'],
                           number_forward, from_forward, lat, lon,))
+
+    # Report messaging statistics to aggregation engine
+    if data_list:
+        AggregationEngine.report_messaging_count("WhatsApp", len(data_list))
+
+    return data_headers, data_list, source_path
+
+
+@artifact_processor
+def whatsAppMessageGapAnalysis(files_found, report_folder, seeker, wrap_text, timezone_offset):
+    """
+    Analyze primary key gaps in WhatsApp ZWAMESSAGE table to detect deleted messages.
+    This function identifies gaps in the Z_PK sequence which indicate deleted messages.
+    """
+    source_path = get_file_path(files_found, 'ChatStorage.sqlite')
+    data_list = []
+
+    # Query to get all primary keys in order
+    query = '''
+    SELECT Z_PK
+    FROM ZWAMESSAGE
+    ORDER BY Z_PK ASC
+    '''
+
+    data_headers = (
+        'Gap Range',
+        'Missing Messages Count',
+        'Gap Start Z_PK',
+        'Gap End Z_PK',
+        'Gap Description'
+    )
+
+    db_records = get_sqlite_db_records(source_path, query)
+
+    if not db_records:
+        # No messages found, return empty data
+        return data_headers, data_list, source_path
+
+    # Extract Z_PK values into a list
+    primary_keys = [record['Z_PK'] for record in db_records]
+
+    # Initialize counters
+    total_missing_messages = 0
+    gap_number = 1
+
+    # Analyze gaps in primary key sequence
+    for i in range(len(primary_keys) - 1):
+        current_pk = primary_keys[i]
+        next_pk = primary_keys[i + 1]
+
+        # Check if there's a gap (difference > 1)
+        if next_pk - current_pk > 1:
+            gap_size = next_pk - current_pk - 1
+            total_missing_messages += gap_size
+
+            gap_range = f"Gap {gap_number}"
+            gap_description = f"Messages with Z_PK between {current_pk} and {next_pk} are missing"
+
+            data_list.append((
+                gap_range,
+                gap_size,
+                current_pk + 1,  # First missing Z_PK
+                next_pk - 1,     # Last missing Z_PK
+                gap_description
+            ))
+
+            gap_number += 1
+
+    # Add summary row at the top
+    if total_missing_messages > 0:
+        summary_row = (
+            "TOTAL SUMMARY",
+            total_missing_messages,
+            "N/A",
+            "N/A",
+            f"Total deleted messages detected: {total_missing_messages}"
+        )
+        data_list.insert(0, summary_row)
+    else:
+        # No gaps found
+        no_gaps_row = (
+            "NO GAPS DETECTED",
+            0,
+            "N/A",
+            "N/A",
+            "No deleted messages detected in the primary key sequence"
+        )
+        data_list.append(no_gaps_row)
 
     return data_headers, data_list, source_path
