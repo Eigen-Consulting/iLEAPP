@@ -176,19 +176,8 @@ def main():
                         help=("Generate a text file list of artifact paths. "
                               "This argument is meant to be used alone, without any other arguments."))
     parser.add_argument('--custom_output_folder', required=False, action="store", help="Custom name for the output folder")
-
-    available_plugins = []
-    loader = plugin_loader.PluginLoader()
-    for plugin in sorted(loader.plugins, key=lambda p: p.category):
-        if (plugin.module_name == 'iTunesBackupInfo'
-                or plugin.name == 'lastBuild'
-                or plugin.module_name == 'logarchive' and plugin.name != 'logarchive'):
-            continue
-        else:
-            available_plugins.append(plugin)
-    selected_plugins = available_plugins.copy()
-    profile_filename = None
-    casedata = {}
+    parser.add_argument('--extra-artifacts', dest='extra_artifacts', required=False, action="store",
+                        help="Path to a folder of additional artifact parser scripts to load (supplements built-in artifacts)")
 
     # Check if no arguments were provided
     if len(sys.argv) == 1:
@@ -204,16 +193,41 @@ def main():
     except argparse.ArgumentError as e:
         parser.error(str(e))
 
+    # Validate extra artifacts path if provided
+    extra_artifacts_path = None
+    if args.extra_artifacts:
+        if os.path.isdir(args.extra_artifacts):
+            extra_artifacts_path = args.extra_artifacts
+            print(f'Using extra artifacts from: {extra_artifacts_path}')
+        else:
+            print(f'Warning: extra artifacts folder \'{args.extra_artifacts}\' not found. Continuing with built-in artifacts only.')
+
+    # Load plugins after argument parsing
+    available_plugins = []
+    loader = plugin_loader.PluginLoader(extra_plugin_path=extra_artifacts_path)
+    for plugin in sorted(loader.plugins, key=lambda p: p.category):
+        if (plugin.module_name == 'iTunesBackupInfo'
+                or plugin.name == 'lastBuild'
+                or plugin.module_name == 'logarchive' and plugin.name != 'logarchive'):
+            continue
+        else:
+            available_plugins.append(plugin)
+    selected_plugins = available_plugins.copy()
+    profile_filename = None
+    casedata = {}
+
     if args.artifact_paths:
         print('Artifact path list generation started.')
         print('')
         with open('path_list.txt', 'a') as paths:
             for plugin in loader.plugins:
-                if isinstance(plugin.search, tuple):
+                if plugin.search is None:
+                    continue  # Skip plugins with no search paths
+                elif isinstance(plugin.search, tuple) or isinstance(plugin.search, list):
                     for x in plugin.search:
                         paths.write(x + '\n')
                         print(x)
-                else:  # TODO check that this is actually a string?
+                else:  # String search path
                     paths.write(plugin.search + '\n')
                     print(plugin.search)
         print('')

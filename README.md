@@ -96,6 +96,27 @@ $ python ileappGUI.py
 $ python ileapp.py --help
 ```
 
+### Using Custom Artifact Scripts
+
+iLEAPP supports loading custom artifact scripts from an external directory using the `--extra-artifacts` flag. This allows you to extend iLEAPP's functionality without modifying the core codebase.
+
+```
+$ python ileapp.py -t fs -i <path_to_extraction> -o <output_path> --extra-artifacts <path_to_custom_artifacts_folder>
+```
+
+**Important Notes:**
+- Custom artifacts must follow the same format as built-in artifacts (see Contributing section below)
+- Built-in artifacts always take priority - if a custom artifact has the same ID as a built-in one, it will be skipped
+- Custom artifacts appear in profiles and can be selected just like built-in ones
+- The custom artifacts folder should contain `.py` files with valid `__artifacts_v2__` definitions
+
+**Example:**
+```
+$ python ileapp.py -t fs -i /path/to/ios/extraction -o /path/to/output --extra-artifacts /my/custom/artifacts
+```
+
+See the `examples/custom_artifacts/` directory for a complete example and detailed documentation.
+
 ## Contributing artifact plugins
 
 Each plugin is a Python source file which should be added to the `scripts/artifacts` folder which will be loaded dynamically each time ILEAPP is run.
